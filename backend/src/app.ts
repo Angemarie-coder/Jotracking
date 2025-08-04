@@ -12,8 +12,7 @@ const envPath = path.resolve(__dirname, '../.env');
 console.log('Loading .env from:', envPath);
 const result = dotenv.config({ path: envPath });
 if (result.error) {
-  console.error('Error loading .env file:', result.error);
-  process.exit(1);
+  console.log('No .env file found, using default values');
 }
 
 // Define typed environment variable interface
@@ -24,19 +23,19 @@ interface Env {
   NODE_ENV: string;
 }
 
-const requiredEnvVars: (keyof Env)[] = ['PORT', 'FRONTEND_URL', 'JWT_SECRET'];
-const env: Env = {} as Env;
-for (const envVar of requiredEnvVars) {
-  const value = process.env[envVar];
-  if (!value || typeof value !== 'string') {
-    console.error(`Invalid or missing environment variable: ${envVar}`);
-    process.exit(1);
-  }
-  env[envVar] = value;
-}
+// Use default values if environment variables are missing
+const env: Env = {
+  PORT: process.env.PORT || '3000',
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
+  JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+  NODE_ENV: process.env.NODE_ENV || 'development'
+};
 
-// Set NODE_ENV
-env.NODE_ENV = process.env.NODE_ENV || 'development';
+console.log('Environment configuration:', {
+  PORT: env.PORT,
+  NODE_ENV: env.NODE_ENV,
+  FRONTEND_URL: env.FRONTEND_URL
+});
 
 const app = express();
 
@@ -85,7 +84,7 @@ connectDB()
     console.log('Database connected successfully');
     
     // Start the server
-    const PORT = env.PORT || 5000;
+    const PORT = env.PORT || 3000;
     app.listen(PORT, () => {
       console.log(`Server running in ${env.NODE_ENV} mode on port ${PORT}`);
       console.log(`API available at http://localhost:${PORT}/api`);

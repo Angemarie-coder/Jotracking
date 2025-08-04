@@ -43,6 +43,11 @@ async function seed() {
     console.log('🌱 Starting database seeding...');
     
     const sequelize = await connectDB();
+    if (!sequelize) {
+      console.error('Database connection failed');
+      process.exit(1);
+    }
+    
     await sequelize.sync({ force: false }); // Don't force sync in production
 
     // Hash passwords and generate verification tokens

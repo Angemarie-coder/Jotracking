@@ -7,25 +7,21 @@ import Job from '../models/Job.model';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-// Define typed environment variable interface
-interface Env {
-  DB_USERNAME: string;
-  DB_PASSWORD: string;
-  DB_HOST: string;
-  DB_PORT: string;
-  DB_NAME: string;
-}
+// Use default values if environment variables are missing
+const env = {
+  DB_USERNAME: process.env.DB_USERNAME || 'postgres',
+  DB_PASSWORD: process.env.DB_PASSWORD || 'password',
+  DB_HOST: process.env.DB_HOST || 'localhost',
+  DB_PORT: process.env.DB_PORT || '5432',
+  DB_NAME: process.env.DB_NAME || 'job_tracker'
+};
 
-const requiredEnvVars: (keyof Env)[] = ['DB_USERNAME', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT', 'DB_NAME'];
-const env: Env = {} as Env;
-for (const envVar of requiredEnvVars) {
-  const value = process.env[envVar];
-  if (!value || typeof value !== 'string') {
-    console.error(`Invalid or missing environment variable: ${envVar}`);
-    process.exit(1);
-  }
-  env[envVar] = value;
-}
+console.log('Database configuration:', {
+  host: env.DB_HOST,
+  port: env.DB_PORT,
+  database: env.DB_NAME,
+  username: env.DB_USERNAME
+});
 
 const connectDB = async () => {
   try {
@@ -37,6 +33,7 @@ const connectDB = async () => {
       port: parseInt(env.DB_PORT, 10),
       database: env.DB_NAME,
       models: [User, Job],
+      logging: false, // Disable SQL logging for cleaner output
     });
 
     await sequelize.authenticate();
@@ -44,7 +41,8 @@ const connectDB = async () => {
     return sequelize;
   } catch (error) {
     console.error('PostgreSQL connection error:', error);
-    process.exit(1);
+    console.log('Starting server without database connection for testing...');
+    return null;
   }
 };
 

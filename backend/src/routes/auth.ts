@@ -118,8 +118,8 @@ router.post('/register', async (req, res) => {
     }
 
     console.log('Hashing password...');
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    // Hash password - Let the User model handle this with @BeforeCreate hook
+    // const hashedPassword = await bcrypt.hash(password, 12);
 
     console.log('Creating user in database...');
     // Create user in the database
@@ -127,7 +127,7 @@ router.post('/register', async (req, res) => {
       firstName,
       lastName,
       email,
-      password: hashedPassword,
+      password, // Let the User model hash this automatically
       isVerified: false, // User starts as unverified
     });
 

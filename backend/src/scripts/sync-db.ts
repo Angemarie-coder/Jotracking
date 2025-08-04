@@ -5,6 +5,11 @@ import '../models/Job.model';
 async function syncDatabase() {
   try {
     const sequelize = await connectDB();
+    if (!sequelize) {
+      console.error('Database connection failed');
+      process.exit(1);
+    }
+    
     await sequelize.sync({ force: true });
     console.log('Database synchronized successfully');
     process.exit(0);

@@ -25,7 +25,7 @@ function verifyToken(req: Request, res: Response, next: NextFunction) {
       throw new Error('Invalid token structure');
     }
     
-    req.user = decoded as { userId: string };
+    req.user = decoded as { userId: number; email: string; isAdmin: boolean; };
     next();
   } catch (err) {
     return res.status(401).json({ 
