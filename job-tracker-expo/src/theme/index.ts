@@ -1,30 +1,30 @@
 // src/theme/index.ts
 
 import { StyleSheet } from 'react-native';
-// MODIFICATION: Import useTheme and MD3Theme for the new makeStyles function
 import { DefaultTheme, useTheme } from 'react-native-paper';
 import type { MD3Theme } from 'react-native-paper';
 
+// Enhanced color palette with better accessibility and modern design
 export const colors = {
-  // Primary colors - Enhanced with better contrast and accessibility
-  primary: '#2563EB', // Modern blue with better contrast
-  primaryLight: '#3B82F6', // Lighter blue
-  primaryDark: '#1D4ED8', // Darker blue
-  primaryContainer: '#DBEAFE', // Light background for primary
+  // Primary colors - Modern blue with better contrast
+  primary: '#2563EB',
+  primaryLight: '#3B82F6',
+  primaryDark: '#1D4ED8',
+  primaryContainer: '#DBEAFE',
   
   // Secondary colors
-  secondary: '#10B981', // Modern green
-  secondaryLight: '#34D399', // Lighter green
-  secondaryDark: '#059669', // Darker green
-  secondaryContainer: '#D1FAE5', // Light background for secondary
+  secondary: '#10B981',
+  secondaryLight: '#34D399',
+  secondaryDark: '#059669',
+  secondaryContainer: '#D1FAE5',
   
   // Status colors - Enhanced for better accessibility
-  success: '#10B981', // Green
-  warning: '#F59E0B', // Amber
-  error: '#EF4444', // Red
-  info: '#3B82F6', // Blue
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  info: '#3B82F6',
   
-  // Grayscale - Improved contrast ratios
+  // Neutral colors - Improved contrast ratios
   white: '#FFFFFF',
   gray50: '#F9FAFB',
   gray100: '#F3F4F6',
@@ -56,6 +56,13 @@ export const colors = {
   border: '#E5E7EB',
   divider: '#F3F4F6',
   overlay: 'rgba(0, 0, 0, 0.1)',
+  
+  // Job status colors
+  statusSaved: '#10B981',
+  statusApplied: '#3B82F6',
+  statusInterviewing: '#F59E0B',
+  statusOffer: '#8B5CF6',
+  statusRejected: '#EF4444',
 };
 
 export const spacing = {
@@ -75,14 +82,16 @@ export const spacing = {
   cardPaddingLarge: 24,
 } as const;
 
+// Enhanced typography with better hierarchy and responsive sizing
 export const typography = {
-  // Enhanced typography with better hierarchy
+  // Display text for hero sections
   display: {
     fontSize: 48,
     lineHeight: 56,
     fontWeight: 'bold' as const,
     letterSpacing: -0.5,
   },
+  // Main headings
   h1: {
     fontSize: 32,
     lineHeight: 40,
@@ -113,6 +122,7 @@ export const typography = {
     fontWeight: '600' as const,
     letterSpacing: 0.15,
   },
+  // Body text
   body1: {
     fontSize: 16,
     lineHeight: 24,
@@ -125,12 +135,14 @@ export const typography = {
     fontWeight: '400' as const,
     letterSpacing: 0.25,
   },
+  // Caption and small text
   caption: {
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '400' as const,
     letterSpacing: 0.4,
   },
+  // Button text
   button: {
     fontSize: 14,
     lineHeight: 16,
@@ -138,6 +150,7 @@ export const typography = {
     letterSpacing: 1.25,
     textTransform: 'uppercase' as const,
   },
+  // Overline text
   overline: {
     fontSize: 10,
     lineHeight: 16,
@@ -157,12 +170,14 @@ export const borderRadius = {
   round: 24,
   pill: 1000,
   // Component-specific border radius
-  card: 12,
-  button: 8,
-  input: 8,
-  chip: 16,
+  card: 16,
+  button: 12,
+  input: 12,
+  chip: 20,
+  avatar: 50,
 } as const;
 
+// Enhanced shadows with better depth perception
 export const shadows = {
   none: {
     elevation: 0,
@@ -173,36 +188,36 @@ export const shadows = {
   },
   
   sm: {
-    elevation: 1,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  md: {
     elevation: 2,
     shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
   },
-  lg: {
+  md: {
     elevation: 4,
     shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+  },
+  lg: {
+    elevation: 8,
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
   },
   xl: {
-    elevation: 8,
+    elevation: 16,
     shadowColor: colors.black,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
-    shadowRadius: 16,
+    shadowRadius: 24,
   },
 };
 
-// Responsive breakpoints
+// Responsive breakpoints for different screen sizes
 export const breakpoints = {
   xs: 320,
   sm: 375,
@@ -232,27 +247,75 @@ export const theme: MD3Theme = {
   },
 };
 
-// ======================================================================
-//                              MODIFICATION
-// ======================================================================
-
-// This is the new, correct implementation of makeStyles.
-// It creates a hook that gives you access to the theme inside your style definitions.
-
+// Enhanced makeStyles function for better theme integration
 type StyleCreator<T extends StyleSheet.NamedStyles<T>> = (theme: MD3Theme) => T;
 
 export const makeStyles = <T extends StyleSheet.NamedStyles<T>>(
   styleCreator: StyleCreator<T>
 ) => {
-  // Return a hook that can be used in your component
   return () => {
-    // This hook gets the theme from the nearest PaperProvider
     const theme = useTheme();
-    // It calls your function to get the styles, then creates the StyleSheet
     return StyleSheet.create(styleCreator(theme));
   };
 };
 
-// ======================================================================
+// Responsive design utilities
+export const responsive = {
+  // Screen size helpers
+  isSmallScreen: (width: number) => width < breakpoints.sm,
+  isMediumScreen: (width: number) => width >= breakpoints.sm && width < breakpoints.md,
+  isLargeScreen: (width: number) => width >= breakpoints.md && width < breakpoints.lg,
+  isXLargeScreen: (width: number) => width >= breakpoints.lg,
+  
+  // Responsive spacing
+  getSpacing: (baseSpacing: number, width: number) => {
+    if (width < breakpoints.sm) return baseSpacing * 0.8;
+    if (width >= breakpoints.lg) return baseSpacing * 1.2;
+    return baseSpacing;
+  },
+  
+  // Responsive font sizes
+  getFontSize: (baseSize: number, width: number) => {
+    if (width < breakpoints.sm) return baseSize * 0.9;
+    if (width >= breakpoints.lg) return baseSize * 1.1;
+    return baseSize;
+  },
+  
+  // Responsive padding
+  getScreenPadding: (width: number) => {
+    if (width < breakpoints.sm) return 12;
+    if (width >= breakpoints.lg) return 24;
+    return 16;
+  },
+  
+  // Responsive card padding
+  getCardPadding: (width: number) => {
+    if (width < breakpoints.sm) return 12;
+    if (width >= breakpoints.lg) return 20;
+    return 16;
+  },
+  
+  // Responsive grid columns
+  getGridColumns: (width: number) => {
+    if (width < breakpoints.sm) return 1;
+    if (width < breakpoints.md) return 2;
+    if (width < breakpoints.lg) return 3;
+    return 4;
+  },
+  
+  // Responsive button sizes
+  getButtonSize: (width: number) => {
+    if (width < breakpoints.sm) return 'small';
+    if (width >= breakpoints.lg) return 'large';
+    return 'medium';
+  },
+  
+  // Responsive icon sizes
+  getIconSize: (baseSize: number, width: number) => {
+    if (width < breakpoints.sm) return baseSize * 0.9;
+    if (width >= breakpoints.lg) return baseSize * 1.1;
+    return baseSize;
+  },
+};
 
 export default theme;

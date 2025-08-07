@@ -7,15 +7,27 @@ import {
   ScrollView, 
   Alert, 
   useWindowDimensions,
-  StatusBar 
+  StatusBar,
+  Dimensions
 } from 'react-native';
 import { TextInput, Text, Card, Title, Paragraph, useTheme } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { NavigationProps } from '../types';
 import Button from '../components/Button';
-import { getResponsiveLayout, getScreenPadding, getResponsiveButtonSize } from '../utils/responsive';
+import { 
+  getResponsiveLayout, 
+  getScreenPadding, 
+  getResponsiveButtonSize,
+  getResponsiveComponentSize,
+  getResponsiveSpacing,
+  getResponsiveBorderRadius,
+  isSmallScreen,
+  isLargeScreen
+} from '../utils/responsive';
 import { colors, spacing, typography, borderRadius, shadows } from '../theme';
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const LoginScreen = ({ navigation }: { navigation: NavigationProps }) => {
   const theme = useTheme();
@@ -72,7 +84,7 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProps }) => {
           <View style={[styles.logoContainer, { backgroundColor: theme.colors.primaryContainer }]}>
             <MaterialCommunityIcons 
               name="briefcase-search" 
-              size={responsiveLayout.isSmallScreen ? 48 : 64} 
+              size={getResponsiveComponentSize(isSmallScreen() ? 48 : 64, 'avatar')} 
               color={theme.colors.primary} 
             />
           </View>
@@ -108,6 +120,7 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProps }) => {
                 activeOutlineColor={theme.colors.primary}
                 placeholder="Enter your email"
                 placeholderTextColor={theme.colors.outline}
+                contentStyle={styles.inputContent}
               />
             </View>
 
@@ -136,6 +149,7 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProps }) => {
                 activeOutlineColor={theme.colors.primary}
                 placeholder="Enter your password"
                 placeholderTextColor={theme.colors.outline}
+                contentStyle={styles.inputContent}
               />
             </View>
 
@@ -149,6 +163,9 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProps }) => {
                 loading={loading}
                 disabled={loading || !isFormValid}
                 fullWidth
+                icon="login"
+                iconPosition="left"
+                variant="primary"
               />
             </View>
 
@@ -172,6 +189,7 @@ const LoginScreen = ({ navigation }: { navigation: NavigationProps }) => {
                 size="small"
                 title="Sign Up"
                 accessibilityLabel="Navigate to registration screen"
+                variant="secondary"
               />
             </View>
           </Card.Content>
@@ -189,59 +207,69 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: getScreenPadding(),
-    paddingVertical: spacing.xl,
+    paddingVertical: getResponsiveSpacing(spacing.xl),
+    minHeight: screenHeight * 0.8, // Ensure minimum height for better layout
   },
   headerSection: {
     alignItems: 'center',
-    marginBottom: spacing.xxl,
+    marginBottom: getResponsiveSpacing(spacing.xxl),
   },
   logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: getResponsiveComponentSize(80, 'avatar'),
+    height: getResponsiveComponentSize(80, 'avatar'),
+    borderRadius: getResponsiveComponentSize(40, 'avatar'),
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: getResponsiveSpacing(spacing.lg),
     ...shadows.md,
   },
   title: {
     ...typography.h1,
     textAlign: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: getResponsiveSpacing(spacing.sm),
+    fontSize: getResponsiveSpacing(isSmallScreen() ? 24 : 32),
   },
   subtitle: {
     ...typography.body1,
     textAlign: 'center',
-    marginBottom: spacing.xl,
-    paddingHorizontal: spacing.lg,
+    marginBottom: getResponsiveSpacing(spacing.xl),
+    paddingHorizontal: getResponsiveSpacing(spacing.lg),
+    fontSize: getResponsiveSpacing(isSmallScreen() ? 14 : 16),
   },
   card: {
-    borderRadius: borderRadius.card,
+    borderRadius: getResponsiveBorderRadius(borderRadius.card),
     ...shadows.lg,
+    marginHorizontal: isLargeScreen() ? getResponsiveSpacing(32) : 0,
   },
   cardContent: {
-    padding: spacing.lg,
+    padding: getResponsiveSpacing(spacing.lg),
   },
   inputContainer: {
-    marginBottom: spacing.lg,
+    marginBottom: getResponsiveSpacing(spacing.lg),
   },
   inputLabel: {
     ...typography.body2,
     fontWeight: '500',
-    marginBottom: spacing.xs,
+    marginBottom: getResponsiveSpacing(spacing.xs),
+    fontSize: getResponsiveSpacing(14),
   },
   input: {
-    fontSize: 16,
-    borderRadius: borderRadius.input,
+    fontSize: getResponsiveSpacing(16),
+    borderRadius: getResponsiveBorderRadius(borderRadius.input),
+    backgroundColor: 'transparent',
+  },
+  inputContent: {
+    paddingVertical: getResponsiveSpacing(12),
+    paddingHorizontal: getResponsiveSpacing(16),
   },
   buttonContainer: {
-    marginTop: spacing.md,
-    marginBottom: spacing.lg,
+    marginTop: getResponsiveSpacing(spacing.md),
+    marginBottom: getResponsiveSpacing(spacing.lg),
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: spacing.lg,
+    marginVertical: getResponsiveSpacing(spacing.lg),
   },
   divider: {
     flex: 1,
@@ -250,16 +278,18 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     ...typography.caption,
-    marginHorizontal: spacing.md,
+    marginHorizontal: getResponsiveSpacing(spacing.md),
+    fontSize: getResponsiveSpacing(12),
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: spacing.md,
+    marginTop: getResponsiveSpacing(spacing.md),
   },
   footerText: {
     ...typography.body2,
+    fontSize: getResponsiveSpacing(14),
   },
 });
 

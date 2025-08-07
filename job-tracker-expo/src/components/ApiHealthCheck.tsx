@@ -34,53 +34,45 @@ const ApiHealthCheck: React.FC = () => {
   }
 
   return (
-    <Card style={[styles.container, { 
-      backgroundColor: isHealthy ? '#E8F5E8' : '#FFEBEE' 
-    }]}>
-      <Card.Content style={styles.content}>
-        <View style={styles.header}>
-          <MaterialCommunityIcons 
-            name={isHealthy ? 'check-circle' : 'alert-circle'} 
-            size={20} 
-            color={isHealthy ? '#4CAF50' : '#F44336'} 
-          />
-          <Text style={[styles.title, { 
-            color: isHealthy ? '#4CAF50' : '#F44336' 
-          }]}>
-            API Connection {isHealthy ? 'OK' : 'Failed'}
-          </Text>
-        </View>
-        
-        <Text style={styles.url}>
-          {getApiBaseUrl()}
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <MaterialCommunityIcons 
+          name={isHealthy ? 'check-circle' : 'alert-circle'} 
+          size={20} 
+          color={isHealthy ? '#4CAF50' : '#F44336'} 
+        />
+        <Text style={[styles.title, { 
+          color: isHealthy ? '#4CAF50' : '#F44336' 
+        }]}>
+          API Connection {isHealthy ? 'OK' : 'Failed'}
         </Text>
-        
-        {error && (
-          <Text style={styles.error}>
-            Error: {error}
-          </Text>
-        )}
-        
-        <Button
-          mode="outlined"
-          onPress={checkHealth}
-          loading={isChecking}
-          style={styles.button}
-        >
-          Retry Connection
-        </Button>
-      </Card.Content>
-    </Card>
+      </View>
+      
+      <Text style={styles.url}>
+        {getApiBaseUrl()}
+      </Text>
+      
+      {error && (
+        <Text style={styles.error}>
+          Error: {error}
+        </Text>
+      )}
+      
+      <Button
+        mode="outlined"
+        onPress={checkHealth}
+        loading={isChecking}
+        style={styles.button}
+      >
+        Retry Connection
+      </Button>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
-    elevation: 1,
-  },
-  content: {
-    padding: 12,
+    paddingVertical: 12,
   },
   header: {
     flexDirection: 'row',

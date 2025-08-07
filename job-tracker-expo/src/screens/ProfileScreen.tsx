@@ -4,6 +4,7 @@ import { Card, Title, Text, Avatar, List, Divider, useTheme } from 'react-native
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import Button from '../components/Button';
+import ApiHealthCheck from '../components/ApiHealthCheck';
 import { NavigationProps } from '../types';
 import { spacing, typography, colors, borderRadius, shadows } from '../theme';
 
@@ -101,7 +102,7 @@ const ProfileScreen = ({ navigation }: { navigation: NavigationProps }) => {
             title="Edit Profile"
             description="Update your personal information"
             left={props => <List.Icon {...props} icon="account-edit" color={theme.colors.primary} />}
-            onPress={() => navigation.navigate('EditProfile')}
+            onPress={() => Alert.alert('Coming Soon', 'Edit Profile will be available in a future update')}
             style={styles.listItem}
             titleStyle={{ color: theme.colors.onSurface }}
             descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
@@ -112,7 +113,7 @@ const ProfileScreen = ({ navigation }: { navigation: NavigationProps }) => {
             title="Change Password"
             description="Update your password"
             left={props => <List.Icon {...props} icon="lock-reset" color={theme.colors.primary} />}
-            onPress={() => navigation.navigate('ChangePassword')}
+            onPress={() => Alert.alert('Coming Soon', 'Change Password will be available in a future update')}
             style={styles.listItem}
             titleStyle={{ color: theme.colors.onSurface }}
             descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
@@ -131,7 +132,7 @@ const ProfileScreen = ({ navigation }: { navigation: NavigationProps }) => {
             title="Notifications"
             description="Manage your notification preferences"
             left={props => <List.Icon {...props} icon="bell" color={theme.colors.primary} />}
-            onPress={() => navigation.navigate('NotificationSettings')}
+            onPress={() => Alert.alert('Coming Soon', 'Notification settings will be available in a future update')}
             style={styles.listItem}
             titleStyle={{ color: theme.colors.onSurface }}
             descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
@@ -142,11 +143,22 @@ const ProfileScreen = ({ navigation }: { navigation: NavigationProps }) => {
             title="Theme"
             description="Change app theme"
             left={props => <List.Icon {...props} icon="theme-light-dark" color={theme.colors.primary} />}
-            onPress={() => navigation.navigate('ThemeSettings')}
+            onPress={() => Alert.alert('Coming Soon', 'Theme settings will be available in a future update')}
             style={styles.listItem}
             titleStyle={{ color: theme.colors.onSurface }}
             descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
           />
+        </Card.Content>
+      </Card>
+
+      {/* Developer Section */}
+      <Card style={[styles.sectionCard, { backgroundColor: theme.colors.surface }]}>
+        <Card.Content>
+          <Title style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+            Developer
+          </Title>
+          
+          <ApiHealthCheck />
         </Card.Content>
       </Card>
 
@@ -161,7 +173,7 @@ const ProfileScreen = ({ navigation }: { navigation: NavigationProps }) => {
             title="Help & Support"
             description="Get help with the app"
             left={props => <List.Icon {...props} icon="help-circle" color={theme.colors.primary} />}
-            onPress={() => navigation.navigate('HelpSupport')}
+            onPress={() => Alert.alert('Coming Soon', 'Help & Support will be available in a future update')}
             style={styles.listItem}
             titleStyle={{ color: theme.colors.onSurface }}
             descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
@@ -172,7 +184,7 @@ const ProfileScreen = ({ navigation }: { navigation: NavigationProps }) => {
             title="About"
             description="App version and information"
             left={props => <List.Icon {...props} icon="information" color={theme.colors.primary} />}
-            onPress={() => navigation.navigate('About')}
+            onPress={() => Alert.alert('About', 'Job Tracker v1.0.0\n\nA simple and effective job application tracking app.')}
             style={styles.listItem}
             titleStyle={{ color: theme.colors.onSurface }}
             descriptionStyle={{ color: theme.colors.onSurfaceVariant }}

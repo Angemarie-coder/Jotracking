@@ -21,7 +21,7 @@ const emailConfig: EmailConfig = {
   // Frontend URL for verification links (environment-based)
   FRONTEND_URL: process.env.NODE_ENV === 'production' 
     ? process.env.FRONTEND_URL || 'https://yourapp.com/verify-email'  // Replace with your actual domain
-    : 'http://192.168.1.124:5000/verify-email'  // Web verification page for local development
+    : 'http://192.168.1.64:5000/verify-email'  // Web verification page for local development
 };
 
 // Instructions for setting up Gmail App Password:

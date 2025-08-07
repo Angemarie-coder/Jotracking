@@ -10,7 +10,7 @@ interface UseApiState<T> {
 interface UseApiReturn<T> extends UseApiState<T> {
   execute: (...args: any[]) => Promise<T | null>;
   reset: () => void;
-  setData: (data: T) => void;
+  setData: (data: T | ((prev: T | null) => T)) => void;
 }
 
 export function useApi<T>(
@@ -48,8 +48,11 @@ export function useApi<T>(
     });
   }, [initialData]);
 
-  const setData = useCallback((data: T) => {
-    setState(prev => ({ ...prev, data }));
+  const setData = useCallback((data: T | ((prev: T | null) => T)) => {
+    setState(prev => ({ 
+      ...prev, 
+      data: typeof data === 'function' ? (data as (prev: T | null) => T)(prev.data) : data 
+    }));
   }, []);
 
   return {

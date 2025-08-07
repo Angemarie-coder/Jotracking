@@ -27,7 +27,7 @@ interface Env {
     // Use default values if environment variables are missing
     const env: Env = {
       PORT: process.env.PORT || '5000',
-      FRONTEND_URL: process.env.FRONTEND_URL || 'http://192.168.1.124:8081',
+      FRONTEND_URL: process.env.FRONTEND_URL || 'http://192.168.1.64:8081',
       JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
       NODE_ENV: process.env.NODE_ENV || 'development'
     };
@@ -51,9 +51,9 @@ app.use(express.static(path.join(__dirname, '../public')));
     const corsOptions = {
       origin: [
         env.FRONTEND_URL || 'http://localhost:3000',
-        'http://192.168.1.124:8081', // Expo development server
+        'http://192.168.1.64:8081', // Expo development server
         'http://192.168.1.124:19006', // Expo web
-        'exp://192.168.1.124:8081' // Expo app
+        'exp://192.168.1.64:8081' // Expo app
       ],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

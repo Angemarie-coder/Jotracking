@@ -22,18 +22,26 @@ import Button from '../components/Button';
 import DashboardAnalytics from '../components/DashboardAnalytics';
 import DashboardWidget from '../components/DashboardWidget';
 import DashboardSummary from '../components/DashboardSummary';
-import ApiHealthCheck from '../components/ApiHealthCheck';
 import useApi from '../hooks/useApi';
 import ErrorHandler from '../utils/errorHandler';
 import { formatDistanceToNow } from 'date-fns';
+import { 
+  getResponsiveSpacing, 
+  getResponsiveComponentSize, 
+  getResponsiveBorderRadius,
+  getResponsiveLayout,
+  isSmallScreen,
+  isLargeScreen,
+  getScreenPadding
+} from '../utils/responsive';
+import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 
-const { width } = Dimensions.get('window');
+const { width: screenWidth } = Dimensions.get('window');
 
 const DashboardScreen = () => {
   const theme = useTheme();
-  const { width: screenWidth } = useWindowDimensions();
-  const isTablet = screenWidth >= 768;
-  const isSmallScreen = screenWidth < 375;
+  const { width } = useWindowDimensions();
+  const responsiveLayout = getResponsiveLayout();
   const navigation = useNavigation<NavigationProps>();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
@@ -92,11 +100,11 @@ const DashboardScreen = () => {
 
   const getStatusColor = (status: JobStatus) => {
     switch (status) {
-      case JobStatus.APPLIED: return theme.colors.primary;
-      case JobStatus.INTERVIEWING: return '#FF9800';
-      case JobStatus.OFFER: return '#4CAF50';
-      case JobStatus.REJECTED: return theme.colors.error;
-      case JobStatus.SAVED: return theme.colors.surfaceVariant;
+      case JobStatus.APPLIED: return colors.statusApplied;
+      case JobStatus.INTERVIEWING: return colors.statusInterviewing;
+      case JobStatus.OFFER: return colors.statusOffer;
+      case JobStatus.REJECTED: return colors.statusRejected;
+      case JobStatus.SAVED: return colors.statusSaved;
       default: return theme.colors.surfaceVariant;
     }
   };
@@ -125,10 +133,10 @@ const DashboardScreen = () => {
 
   const getProgressColor = () => {
     const progress = calculateProgress();
-    if (progress >= 80) return '#4CAF50';
-    if (progress >= 60) return '#FF9800';
-    if (progress >= 40) return '#2196F3';
-    return '#9E9E9E';
+    if (progress >= 80) return colors.success;
+    if (progress >= 60) return colors.warning;
+    if (progress >= 40) return colors.info;
+    return colors.gray500;
   };
 
   const isLoading = statsLoading || jobsLoading || userLoading;
@@ -150,215 +158,217 @@ const DashboardScreen = () => {
           <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
         }
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        <View style={styles.content}>
-          {/* API Health Check - Temporary for debugging */}
-          <ApiHealthCheck />
-
-          {/* Welcome Header */}
-          <Card style={styles.welcomeCard}>
-            <Card.Content style={styles.welcomeContent}>
-              <View style={styles.welcomeLeft}>
-                <Text style={styles.welcomeText}>
-                  Welcome back, {currentUser?.firstName || 'User'}! 👋
-                </Text>
-                <Text style={styles.welcomeSubtext}>
-                  {stats?.total ? `You have ${stats.total} jobs in your tracker` : 'Start tracking your job applications'}
-                </Text>
-              </View>
-              <Avatar.Text 
-                size={50} 
-                label={currentUser ? `${currentUser.firstName[0]}${currentUser.lastName[0]}` : 'U'} 
-                style={styles.avatar}
-              />
-            </Card.Content>
-          </Card>
-
-          {/* Dashboard Summary */}
-          {stats && <DashboardSummary stats={stats} />}
-
-          {/* Progress Overview */}
-          <Card style={styles.progressCard}>
-            <Card.Content>
-              <View style={styles.progressHeader}>
-                <Text variant="titleMedium" style={styles.progressTitle}>
-                  Application Progress
-                </Text>
-                <Text style={[styles.progressPercentage, { color: getProgressColor() }]}>
-                  {calculateProgress()}%
-                </Text>
-              </View>
-              <View style={styles.progressBar}>
-                <View 
-                  style={[
-                    styles.progressFill, 
-                    { 
-                      width: `${calculateProgress()}%`,
-                      backgroundColor: getProgressColor()
-                    }
-                  ]} 
-                />
-              </View>
-              <View style={styles.progressStats}>
-                <View style={styles.progressStat}>
-                  <Text style={styles.progressStatLabel}>Applied</Text>
-                  <Text style={styles.progressStatValue}>{stats?.applied || 0}</Text>
-                </View>
-                <View style={styles.progressStat}>
-                  <Text style={styles.progressStatLabel}>Interviewing</Text>
-                  <Text style={styles.progressStatValue}>{stats?.interviewing || 0}</Text>
-                </View>
-                <View style={styles.progressStat}>
-                  <Text style={styles.progressStatLabel}>Offers</Text>
-                  <Text style={styles.progressStatValue}>{stats?.offers || 0}</Text>
-                </View>
-              </View>
-            </Card.Content>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card style={styles.quickActionsCard}>
-            <Card.Content>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                Quick Actions
+        {/* Welcome Header */}
+        <Card style={[styles.welcomeCard, { backgroundColor: theme.colors.surface }]}>
+          <Card.Content style={styles.welcomeContent}>
+            <View style={styles.welcomeLeft}>
+              <Text style={[styles.welcomeText, { color: theme.colors.onSurface }]}>
+                Welcome back, {currentUser?.firstName || 'User'}! 👋
               </Text>
-              <View style={styles.quickActions}>
+              <Text style={[styles.welcomeSubtext, { color: theme.colors.onSurfaceVariant }]}>
+                {stats?.total ? `You have ${stats.total} jobs in your tracker` : 'Start tracking your job applications'}
+              </Text>
+            </View>
+            <Avatar.Text 
+              size={getResponsiveComponentSize(50, 'avatar')} 
+              label={currentUser ? `${currentUser.firstName[0]}${currentUser.lastName[0]}` : 'U'} 
+              style={[styles.avatar, { backgroundColor: theme.colors.primary }]}
+            />
+          </Card.Content>
+        </Card>
+
+        {/* Dashboard Summary */}
+        {stats && <DashboardSummary stats={stats} />}
+
+        {/* Progress Overview */}
+        <Card style={[styles.progressCard, { backgroundColor: theme.colors.surface }]}>
+          <Card.Content style={styles.progressContent}>
+            <View style={styles.progressHeader}>
+              <Text variant="titleMedium" style={[styles.progressTitle, { color: theme.colors.onSurface }]}>
+                Application Progress
+              </Text>
+              <Text style={[styles.progressPercentage, { color: getProgressColor() }]}>
+                {calculateProgress()}%
+              </Text>
+            </View>
+            <View style={[styles.progressBar, { backgroundColor: theme.colors.surfaceVariant }]}>
+              <View 
+                style={[
+                  styles.progressFill, 
+                  { 
+                    width: `${calculateProgress()}%`,
+                    backgroundColor: getProgressColor()
+                  }
+                ]} 
+              />
+            </View>
+            <View style={styles.progressStats}>
+              <View style={styles.progressStat}>
+                <Text style={[styles.progressStatLabel, { color: theme.colors.onSurfaceVariant }]}>Applied</Text>
+                <Text style={[styles.progressStatValue, { color: theme.colors.onSurface }]}>{stats?.applied || 0}</Text>
+              </View>
+              <View style={styles.progressStat}>
+                <Text style={[styles.progressStatLabel, { color: theme.colors.onSurfaceVariant }]}>Interviewing</Text>
+                <Text style={[styles.progressStatValue, { color: theme.colors.onSurface }]}>{stats?.interviewing || 0}</Text>
+              </View>
+              <View style={styles.progressStat}>
+                <Text style={[styles.progressStatLabel, { color: theme.colors.onSurfaceVariant }]}>Offers</Text>
+                <Text style={[styles.progressStatValue, { color: theme.colors.onSurface }]}>{stats?.offers || 0}</Text>
+              </View>
+            </View>
+          </Card.Content>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card style={[styles.quickActionsCard, { backgroundColor: theme.colors.surface }]}>
+          <Card.Content style={styles.quickActionsContent}>
+            <Text variant="titleMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+              Quick Actions
+            </Text>
+            <View style={styles.quickActions}>
+              <Button
+                mode="contained"
+                onPress={() => navigation.navigate('AddJob')}
+                style={styles.quickActionButton}
+                title="Add Job"
+                icon="plus"
+                variant="primary"
+              />
+              <Button
+                mode="outlined"
+                onPress={() => navigation.navigate('Jobs')}
+                style={styles.quickActionButton}
+                title="View All"
+                icon="briefcase"
+                variant="secondary"
+              />
+              <Button
+                mode="outlined"
+                onPress={() => navigation.navigate('Profile')}
+                style={styles.quickActionButton}
+                title="Profile"
+                icon="account"
+                variant="secondary"
+              />
+            </View>
+          </Card.Content>
+        </Card>
+
+        {/* Analytics Component */}
+        {stats && <DashboardAnalytics stats={stats} />}
+
+        {/* Stats Widgets */}
+        <View style={styles.statsContainer}>
+          <DashboardWidget
+            title="Total Jobs"
+            value={stats?.total || 0}
+            icon="briefcase"
+            color={theme.colors.primary}
+            onPress={() => navigation.navigate('Jobs')}
+          />
+          <DashboardWidget
+            title="Applied"
+            value={stats?.applied || 0}
+            icon="send"
+            color={colors.statusApplied}
+            onPress={() => navigation.navigate('Jobs')}
+          />
+          <DashboardWidget
+            title="Interviewing"
+            value={stats?.interviewing || 0}
+            icon="account-tie"
+            color={colors.statusInterviewing}
+            onPress={() => navigation.navigate('Jobs')}
+          />
+          <DashboardWidget
+            title="Offers"
+            value={stats?.offers || 0}
+            icon="trophy"
+            color={colors.statusOffer}
+            onPress={() => navigation.navigate('Jobs')}
+          />
+        </View>
+
+        {/* Recent Activity */}
+        <Card style={[styles.activityCard, { backgroundColor: theme.colors.surface }]}>
+          <Card.Content style={styles.activityContent}>
+            <View style={styles.sectionHeader}>
+              <Text variant="titleMedium" style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+                Recent Activity
+              </Text>
+              <Button
+                mode="text"
+                onPress={() => navigation.navigate('Jobs')}
+                style={styles.seeAllButton}
+                labelStyle={[styles.seeAllButtonLabel, { color: theme.colors.primary }]}
+                title="See All"
+                variant="primary"
+              />
+            </View>
+            
+            {recentJobs && recentJobs.length > 0 ? (
+              recentJobs.map((job, index) => (
+                <View key={job.id}>
+                  <View style={styles.activityItem}>
+                    <View style={[styles.activityIcon, { backgroundColor: theme.colors.surfaceVariant }]}>
+                      <MaterialCommunityIcons 
+                        name={getStatusIcon(job.status)} 
+                        size={getResponsiveComponentSize(20, 'button')} 
+                        color={getStatusColor(job.status)} 
+                      />
+                    </View>
+                    <View style={styles.activityItemContent}>
+                      <Text style={[styles.activityTitle, { color: theme.colors.onSurface }]} numberOfLines={1}>
+                        {job.title}
+                      </Text>
+                      <Text style={[styles.activityCompany, { color: theme.colors.onSurfaceVariant }]} numberOfLines={1}>
+                        {job.company}
+                      </Text>
+                      <View style={styles.activityMeta}>
+                        <View style={[styles.statusChip, { backgroundColor: getStatusColor(job.status) }]}>
+                          <Text style={styles.statusChipText}>
+                            {job.status}
+                          </Text>
+                        </View>
+                        <Text style={[styles.activityTime, { color: theme.colors.onSurfaceVariant }]}>
+                          {job.createdAt ? formatDistanceToNow(new Date(job.createdAt), { addSuffix: true }) : ''}
+                        </Text>
+                      </View>
+                    </View>
+                    <IconButton
+                      icon="chevron-right"
+                      size={getResponsiveComponentSize(20, 'button')}
+                      onPress={() => navigation.navigate('JobDetail', { jobId: job.id })}
+                      iconColor={theme.colors.onSurfaceVariant}
+                    />
+                  </View>
+                  {index < recentJobs.length - 1 && <Divider style={[styles.divider, { backgroundColor: theme.colors.outline }]} />}
+                </View>
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <MaterialCommunityIcons 
+                  name="briefcase-outline" 
+                  size={getResponsiveComponentSize(48, 'avatar')} 
+                  color={theme.colors.outline} 
+                />
+                <Text style={[styles.emptyText, { color: theme.colors.onSurface }]}>No recent jobs found</Text>
+                <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
+                  Start tracking your job applications to see them here
+                </Text>
                 <Button
                   mode="contained"
                   onPress={() => navigation.navigate('AddJob')}
-                  style={styles.quickActionButton}
-                  title="Add Job"
-                  icon="plus"
-                />
-                <Button
-                  mode="outlined"
-                  onPress={() => navigation.navigate('Jobs')}
-                  style={styles.quickActionButton}
-                  title="View All"
-                  icon="briefcase"
-                />
-                <Button
-                  mode="outlined"
-                  onPress={() => navigation.navigate('Profile')}
-                  style={styles.quickActionButton}
-                  title="Profile"
-                  icon="account"
+                  style={styles.addJobButton}
+                  title="Add Your First Job"
+                  variant="primary"
                 />
               </View>
-            </Card.Content>
-          </Card>
-
-          {/* Analytics Component */}
-          {stats && <DashboardAnalytics stats={stats} />}
-
-          {/* Stats Widgets */}
-          <View style={styles.statsContainer}>
-            <DashboardWidget
-              title="Total Jobs"
-              value={stats?.total || 0}
-              icon="briefcase"
-              color={theme.colors.primary}
-              onPress={() => navigation.navigate('Jobs')}
-            />
-            <DashboardWidget
-              title="Applied"
-              value={stats?.applied || 0}
-              icon="send"
-              color="#4CAF50"
-              onPress={() => navigation.navigate('Jobs')}
-            />
-            <DashboardWidget
-              title="Interviewing"
-              value={stats?.interviewing || 0}
-              icon="account-tie"
-              color="#2196F3"
-              onPress={() => navigation.navigate('Jobs')}
-            />
-            <DashboardWidget
-              title="Offers"
-              value={stats?.offers || 0}
-              icon="trophy"
-              color="#9C27B0"
-              onPress={() => navigation.navigate('Jobs')}
-            />
-          </View>
-
-          {/* Recent Activity */}
-          <Card style={styles.activityCard}>
-            <Card.Content>
-              <View style={styles.sectionHeader}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Recent Activity
-                </Text>
-                <Button
-                  mode="text"
-                  onPress={() => navigation.navigate('Jobs')}
-                  style={styles.seeAllButton}
-                  labelStyle={styles.seeAllButtonLabel}
-                  title="See All"
-                />
-              </View>
-              
-              {recentJobs && recentJobs.length > 0 ? (
-                recentJobs.map((job, index) => (
-                  <View key={job.id}>
-                    <View style={styles.activityItem}>
-                      <View style={styles.activityIcon}>
-                        <MaterialCommunityIcons 
-                          name={getStatusIcon(job.status)} 
-                          size={20} 
-                          color={getStatusColor(job.status)} 
-                        />
-                      </View>
-                      <View style={styles.activityContent}>
-                        <Text style={styles.activityTitle} numberOfLines={1}>
-                          {job.title}
-                        </Text>
-                        <Text style={styles.activityCompany} numberOfLines={1}>
-                          {job.company}
-                        </Text>
-                        <View style={styles.activityMeta}>
-                          <View style={[styles.statusChip, { backgroundColor: getStatusColor(job.status) }]}>
-                            <Text style={styles.statusChipText}>
-                              {job.status}
-                            </Text>
-                          </View>
-                          <Text style={styles.activityTime}>
-                            {job.createdAt ? formatDistanceToNow(new Date(job.createdAt), { addSuffix: true }) : ''}
-                          </Text>
-                        </View>
-                      </View>
-                      <IconButton
-                        icon="chevron-right"
-                        size={20}
-                        onPress={() => navigation.navigate('JobDetail', { jobId: job.id })}
-                      />
-                    </View>
-                    {index < recentJobs.length - 1 && <Divider style={styles.divider} />}
-                  </View>
-                ))
-              ) : (
-                <View style={styles.emptyState}>
-                  <MaterialCommunityIcons 
-                    name="briefcase-outline" 
-                    size={48} 
-                    color={theme.colors.outline} 
-                  />
-                  <Text style={styles.emptyText}>No recent jobs found</Text>
-                  <Text style={styles.emptySubtext}>
-                    Start tracking your job applications to see them here
-                  </Text>
-                  <Button
-                    mode="contained"
-                    onPress={() => navigation.navigate('AddJob')}
-                    style={styles.addJobButton}
-                    title="Add Your First Job"
-                  />
-                </View>
-              )}
-            </Card.Content>
-          </Card>
-        </View>
+            )}
+          </Card.Content>
+        </Card>
       </ScrollView>
 
       {/* Error Snackbar */}
@@ -382,11 +392,10 @@ const DashboardScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.gray50,
   },
-  content: {
-    flex: 1,
-    padding: 16,
+  scrollContent: {
+    padding: getScreenPadding(),
   },
   loader: {
     flex: 1,
@@ -394,8 +403,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   welcomeCard: {
-    marginBottom: 16,
-    elevation: 2,
+    marginTop: getResponsiveSpacing(spacing.md),
+    marginBottom: getResponsiveSpacing(spacing.md),
+    borderRadius: getResponsiveBorderRadius(borderRadius.card),
+    ...shadows.md,
   },
   welcomeContent: {
     flexDirection: 'row',
@@ -406,43 +417,46 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   welcomeText: {
-    fontSize: 20,
+    fontSize: getResponsiveSpacing(isSmallScreen() ? 18 : 20),
     fontWeight: 'bold',
-    marginBottom: 4,
+    marginBottom: getResponsiveSpacing(spacing.xs),
   },
   welcomeSubtext: {
-    fontSize: 14,
-    opacity: 0.7,
+    fontSize: getResponsiveSpacing(isSmallScreen() ? 12 : 14),
   },
   avatar: {
-    backgroundColor: '#2196F3',
+    marginLeft: getResponsiveSpacing(spacing.md),
   },
   progressCard: {
-    marginBottom: 16,
-    elevation: 2,
+    marginBottom: getResponsiveSpacing(spacing.md),
+    borderRadius: getResponsiveBorderRadius(borderRadius.card),
+    ...shadows.md,
+  },
+  progressContent: {
+    padding: getResponsiveSpacing(spacing.lg),
   },
   progressHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: getResponsiveSpacing(spacing.md),
   },
   progressTitle: {
     fontWeight: 'bold',
+    fontSize: getResponsiveSpacing(16),
   },
   progressPercentage: {
-    fontSize: 18,
+    fontSize: getResponsiveSpacing(18),
     fontWeight: 'bold',
   },
   progressBar: {
-    height: 8,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 4,
-    marginBottom: 16,
+    height: getResponsiveSpacing(8),
+    borderRadius: getResponsiveBorderRadius(borderRadius.xs),
+    marginBottom: getResponsiveSpacing(spacing.md),
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: getResponsiveBorderRadius(borderRadius.xs),
   },
   progressStats: {
     flexDirection: 'row',
@@ -452,102 +466,84 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   progressStatLabel: {
-    fontSize: 12,
-    opacity: 0.7,
-    marginBottom: 4,
+    fontSize: getResponsiveSpacing(12),
+    marginBottom: getResponsiveSpacing(spacing.xs),
   },
   progressStatValue: {
-    fontSize: 16,
+    fontSize: getResponsiveSpacing(16),
     fontWeight: 'bold',
   },
   quickActionsCard: {
-    marginBottom: 16,
-    elevation: 2,
+    marginBottom: getResponsiveSpacing(spacing.md),
+    borderRadius: getResponsiveBorderRadius(borderRadius.card),
+    ...shadows.md,
+  },
+  quickActionsContent: {
+    padding: getResponsiveSpacing(spacing.lg),
   },
   quickActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 12,
+    marginTop: getResponsiveSpacing(spacing.md),
+    gap: getResponsiveSpacing(spacing.sm),
   },
   quickActionButton: {
     flex: 1,
-    marginHorizontal: 4,
   },
   statsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  statCard: {
-    width: '48%',
-    marginBottom: 12,
-    elevation: 2,
-  },
-  statCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statIcon: {
-    marginRight: 12,
-  },
-  statTextContainer: {
-    flex: 1,
-  },
-  statTitle: {
-    color: 'white',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  statValue: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold',
+    marginBottom: getResponsiveSpacing(spacing.md),
+    gap: getResponsiveSpacing(spacing.sm),
   },
   activityCard: {
-    elevation: 2,
+    borderRadius: getResponsiveBorderRadius(borderRadius.card),
+    ...shadows.md,
+  },
+  activityContent: {
+    padding: getResponsiveSpacing(spacing.lg),
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: getResponsiveSpacing(spacing.md),
   },
   sectionTitle: {
     fontWeight: 'bold',
+    fontSize: getResponsiveSpacing(16),
   },
   seeAllButton: {
     padding: 0,
   },
   seeAllButtonLabel: {
-    fontSize: 14,
+    fontSize: getResponsiveSpacing(14),
   },
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: getResponsiveSpacing(spacing.md),
   },
   activityIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f5f5f5',
+    width: getResponsiveComponentSize(40, 'avatar'),
+    height: getResponsiveComponentSize(40, 'avatar'),
+    borderRadius: getResponsiveComponentSize(20, 'avatar'),
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: getResponsiveSpacing(spacing.md),
   },
-  activityContent: {
+  activityItemContent: {
     flex: 1,
   },
   activityTitle: {
-    fontSize: 16,
+    fontSize: getResponsiveSpacing(16),
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: getResponsiveSpacing(spacing.xs),
   },
   activityCompany: {
-    fontSize: 14,
-    opacity: 0.7,
-    marginBottom: 4,
+    fontSize: getResponsiveSpacing(14),
+    marginBottom: getResponsiveSpacing(spacing.xs),
   },
   activityMeta: {
     flexDirection: 'row',
@@ -556,40 +552,38 @@ const styles = StyleSheet.create({
   },
   statusChip: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: getResponsiveSpacing(spacing.sm),
+    paddingVertical: getResponsiveSpacing(spacing.xs),
+    borderRadius: getResponsiveBorderRadius(borderRadius.chip),
   },
   statusChipText: {
-    color: 'white',
-    fontSize: 10,
+    color: colors.white,
+    fontSize: getResponsiveSpacing(10),
     fontWeight: '600',
   },
   activityTime: {
-    fontSize: 12,
-    opacity: 0.6,
+    fontSize: getResponsiveSpacing(12),
   },
   divider: {
-    marginLeft: 52,
+    marginLeft: getResponsiveComponentSize(52, 'avatar'),
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: getResponsiveSpacing(spacing.xxl),
   },
   emptyText: {
-    fontSize: 16,
+    fontSize: getResponsiveSpacing(16),
     fontWeight: '600',
-    marginTop: 12,
-    marginBottom: 4,
+    marginTop: getResponsiveSpacing(spacing.md),
+    marginBottom: getResponsiveSpacing(spacing.xs),
   },
   emptySubtext: {
-    fontSize: 14,
-    opacity: 0.6,
+    fontSize: getResponsiveSpacing(14),
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: getResponsiveSpacing(spacing.md),
   },
   addJobButton: {
-    marginTop: 8,
+    marginTop: getResponsiveSpacing(spacing.sm),
   },
 });
 

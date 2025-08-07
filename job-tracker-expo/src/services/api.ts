@@ -86,8 +86,8 @@ class ApiService {
     return response.data.data!;
   }
 
-  // Helper method to handle errors
-  private handleError(error: any): never {
+  // Helper method to handle errors with proper binding
+  private handleApiError = (error: any): never => {
     if (error.response?.data?.error) {
       throw new Error(error.response.data.error);
     }
@@ -103,7 +103,7 @@ class ApiService {
       const response: AxiosResponse<ApiResponse<AuthResponse>> = await this.api.post('/auth/login', credentials);
       return this.handleAuthResponse(response);
     } catch (error) {
-      throw this.handleError(error);
+      throw this.handleApiError(error);
     }
   }
 
@@ -112,7 +112,7 @@ class ApiService {
       const response: AxiosResponse<ApiResponse<AuthResponse>> = await this.api.post('/auth/register', userData);
       return this.handleAuthResponse(response);
     } catch (error) {
-      throw this.handleError(error);
+      throw this.handleApiError(error);
     }
   }
 
@@ -121,7 +121,7 @@ class ApiService {
       const response: AxiosResponse<ApiResponse<User>> = await this.api.get('/auth/me');
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error);
+      throw this.handleApiError(error);
     }
   }
 
@@ -139,7 +139,7 @@ class ApiService {
       const response: AxiosResponse<ApiResponse<Job[]>> = await this.api.get(`/jobs?${params.toString()}`);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error);
+      throw this.handleApiError(error);
     }
   }
 
@@ -148,7 +148,7 @@ class ApiService {
       const response: AxiosResponse<ApiResponse<Job>> = await this.api.get(`/jobs/${id}`);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error);
+      throw this.handleApiError(error);
     }
   }
 
@@ -157,7 +157,7 @@ class ApiService {
       const response: AxiosResponse<ApiResponse<Job>> = await this.api.post('/jobs', jobData);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error);
+      throw this.handleApiError(error);
     }
   }
 
@@ -166,7 +166,7 @@ class ApiService {
       const response: AxiosResponse<ApiResponse<Job>> = await this.api.put(`/jobs/${id}`, jobData);
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error);
+      throw this.handleApiError(error);
     }
   }
 
@@ -174,7 +174,7 @@ class ApiService {
     try {
       await this.api.delete(`/jobs/${id}`);
     } catch (error) {
-      throw this.handleError(error);
+      throw this.handleApiError(error);
     }
   }
 
@@ -183,7 +183,7 @@ class ApiService {
       const response: AxiosResponse<ApiResponse<DashboardStats>> = await this.api.get('/jobs/stats');
       return this.handleResponse(response);
     } catch (error) {
-      throw this.handleError(error);
+      throw this.handleApiError(error);
     }
   }
 

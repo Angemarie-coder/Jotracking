@@ -16,7 +16,7 @@ const getEnvironment = (): Environment => {
   
       if (isDevelopment) {
       // For development, use the backend running on port 5000
-      apiBaseUrl = 'http://192.168.1.124:5000/api';
+      apiBaseUrl = 'http://192.168.137.1:5000/api';
     } else {
       // For production, use your actual API URL
       apiBaseUrl = 'https://your-production-api.com/api';

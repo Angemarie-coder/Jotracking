@@ -9,7 +9,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // Use default values if environment variables are missing
 const env = {
-  DB_USERNAME: process.env.DB_USERNAME || 'postgres',
+  DB_USERNAME: process.env.DB_USER || 'postgres',
   DB_PASSWORD: process.env.DB_PASSWORD || 'password',
   DB_HOST: process.env.DB_HOST || 'localhost',
   DB_PORT: process.env.DB_PORT || '5432',
@@ -38,6 +38,20 @@ const connectDB = async () => {
         underscored: true, // Use snake_case for column names
         freezeTableName: true, // Prevent Sequelize from pluralizing table names
       },
+      // PostgreSQL-specific optimizations
+      pool: {
+        max: 20, // Maximum number of connection instances
+        min: 0,  // Minimum number of connection instances
+        acquire: 30000, // Maximum time (ms) that pool will try to get connection before throwing error
+        idle: 10000 // Maximum time (ms) that a connection can be idle before being released
+      },
+      dialectOptions: {
+        // PostgreSQL-specific options
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+        // Enable JSON operators for better performance
+        supportBigNumbers: true,
+        bigNumberStrings: true
+      }
     });
 
     await sequelize.authenticate();

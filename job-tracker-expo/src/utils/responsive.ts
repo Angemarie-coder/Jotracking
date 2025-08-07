@@ -1,5 +1,5 @@
 import { Dimensions, PixelRatio, Platform } from 'react-native';
-import { breakpoints } from '../theme';
+import { breakpoints, responsive as themeResponsive } from '../theme';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -13,7 +13,7 @@ export const hp = (percentage: number) => {
   return (screenHeight * percentage) / 100;
 };
 
-// Responsive font size
+// Responsive font size with better scaling
 export const rf = (size: number) => {
   const scale = screenWidth / 375; // Base width is 375 (iPhone X)
   const newSize = size * scale;
@@ -26,24 +26,20 @@ export const getScreenDimensions = () => ({
   height: screenHeight,
 });
 
-// Responsive breakpoint helpers
-export const isSmallScreen = () => screenWidth < breakpoints.sm;
-export const isMediumScreen = () => screenWidth >= breakpoints.sm && screenWidth < breakpoints.md;
-export const isLargeScreen = () => screenWidth >= breakpoints.md && screenWidth < breakpoints.lg;
-export const isXLargeScreen = () => screenWidth >= breakpoints.lg;
+// Enhanced responsive breakpoint helpers using theme system
+export const isSmallScreen = () => themeResponsive.isSmallScreen(screenWidth);
+export const isMediumScreen = () => themeResponsive.isMediumScreen(screenWidth);
+export const isLargeScreen = () => themeResponsive.isLargeScreen(screenWidth);
+export const isXLargeScreen = () => themeResponsive.isXLargeScreen(screenWidth);
 
-// Responsive spacing
+// Enhanced responsive spacing using theme system
 export const getResponsiveSpacing = (baseSpacing: number) => {
-  if (isSmallScreen()) return baseSpacing * 0.8;
-  if (isLargeScreen()) return baseSpacing * 1.2;
-  return baseSpacing;
+  return themeResponsive.getSpacing(baseSpacing, screenWidth);
 };
 
-// Responsive font sizes
+// Enhanced responsive font sizes using theme system
 export const getResponsiveFontSize = (baseSize: number) => {
-  if (isSmallScreen()) return baseSize * 0.9;
-  if (isLargeScreen()) return baseSize * 1.1;
-  return baseSize;
+  return themeResponsive.getFontSize(baseSize, screenWidth);
 };
 
 // Platform-specific adjustments
@@ -51,50 +47,37 @@ export const getPlatformValue = (iosValue: any, androidValue: any) => {
   return Platform.OS === 'ios' ? iosValue : androidValue;
 };
 
-// Responsive padding
+// Enhanced responsive padding using theme system
 export const getScreenPadding = () => {
-  if (isSmallScreen()) return 12;
-  if (isLargeScreen()) return 24;
-  return 16;
+  return themeResponsive.getScreenPadding(screenWidth);
 };
 
-// Responsive card padding
+// Enhanced responsive card padding using theme system
 export const getCardPadding = () => {
-  if (isSmallScreen()) return 12;
-  if (isLargeScreen()) return 20;
-  return 16;
+  return themeResponsive.getCardPadding(screenWidth);
 };
 
-// Responsive grid columns
+// Enhanced responsive grid columns using theme system
 export const getGridColumns = () => {
-  if (isSmallScreen()) return 1;
-  if (isMediumScreen()) return 2;
-  if (isLargeScreen()) return 3;
-  return 4;
+  return themeResponsive.getGridColumns(screenWidth);
 };
 
-// Responsive image sizes
+// Enhanced responsive image sizes
 export const getResponsiveImageSize = (baseSize: number) => {
-  if (isSmallScreen()) return baseSize * 0.8;
-  if (isLargeScreen()) return baseSize * 1.2;
-  return baseSize;
+  return themeResponsive.getIconSize(baseSize, screenWidth);
 };
 
-// Responsive button sizes
+// Enhanced responsive button sizes using theme system
 export const getResponsiveButtonSize = () => {
-  if (isSmallScreen()) return 'small';
-  if (isLargeScreen()) return 'large';
-  return 'medium';
+  return themeResponsive.getButtonSize(screenWidth);
 };
 
-// Responsive icon sizes
+// Enhanced responsive icon sizes using theme system
 export const getResponsiveIconSize = (baseSize: number) => {
-  if (isSmallScreen()) return baseSize * 0.9;
-  if (isLargeScreen()) return baseSize * 1.1;
-  return baseSize;
+  return themeResponsive.getIconSize(baseSize, screenWidth);
 };
 
-// Responsive layout helpers
+// Enhanced responsive layout helpers
 export const getResponsiveLayout = () => {
   return {
     isSmallScreen: isSmallScreen(),
@@ -105,5 +88,67 @@ export const getResponsiveLayout = () => {
     cardPadding: getCardPadding(),
     gridColumns: getGridColumns(),
     buttonSize: getResponsiveButtonSize(),
+    screenWidth,
+    screenHeight,
   };
+};
+
+// New utility functions for better responsive design
+
+// Responsive margin/padding helper
+export const getResponsiveMargin = (baseMargin: number) => {
+  return themeResponsive.getSpacing(baseMargin, screenWidth);
+};
+
+// Responsive border radius helper
+export const getResponsiveBorderRadius = (baseRadius: number) => {
+  if (isSmallScreen()) return baseRadius * 0.8;
+  if (isLargeScreen()) return baseRadius * 1.2;
+  return baseRadius;
+};
+
+// Responsive elevation/shadow helper
+export const getResponsiveElevation = (baseElevation: number) => {
+  if (isSmallScreen()) return Math.max(0, baseElevation - 1);
+  if (isLargeScreen()) return baseElevation + 1;
+  return baseElevation;
+};
+
+// Responsive aspect ratio helper
+export const getResponsiveAspectRatio = (baseRatio: number) => {
+  if (isSmallScreen()) return baseRatio * 0.9;
+  if (isLargeScreen()) return baseRatio * 1.1;
+  return baseRatio;
+};
+
+// Responsive line height helper
+export const getResponsiveLineHeight = (baseLineHeight: number) => {
+  return themeResponsive.getFontSize(baseLineHeight, screenWidth);
+};
+
+// Device orientation helper
+export const isPortrait = () => screenHeight > screenWidth;
+export const isLandscape = () => screenWidth > screenHeight;
+
+// Safe area helpers (for devices with notches)
+export const getSafeAreaTop = () => {
+  // This would typically use react-native-safe-area-context
+  // For now, we'll use a simple calculation
+  return Platform.OS === 'ios' ? 44 : 24;
+};
+
+export const getSafeAreaBottom = () => {
+  return Platform.OS === 'ios' ? 34 : 0;
+};
+
+// Responsive component sizing
+export const getResponsiveComponentSize = (baseSize: number, componentType: 'button' | 'card' | 'input' | 'avatar') => {
+  const sizeMultiplier = {
+    button: isSmallScreen() ? 0.9 : isLargeScreen() ? 1.1 : 1,
+    card: isSmallScreen() ? 0.95 : isLargeScreen() ? 1.05 : 1,
+    input: isSmallScreen() ? 0.9 : isLargeScreen() ? 1.1 : 1,
+    avatar: isSmallScreen() ? 0.8 : isLargeScreen() ? 1.2 : 1,
+  };
+  
+  return baseSize * sizeMultiplier[componentType];
 }; 
