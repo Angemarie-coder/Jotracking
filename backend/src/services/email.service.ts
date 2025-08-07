@@ -3,22 +3,24 @@ import User from '../models/User.model';
 import path from 'path';
 import fs from 'fs';
 import ejs from 'ejs';
+import emailConfig from '../config/email-config';
 
 class EmailService {
   private transporter: nodemailer.Transporter;
   private fromEmail: string;
 
   constructor() {
-    this.fromEmail = process.env.EMAIL_FROM || 'noreply@jobtracker.com';
+    this.fromEmail = emailConfig.EMAIL_FROM;
     
-    // For development, you can use Ethereal.email for testing
+    // Configure Gmail SMTP
     this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST || 'smtp.ethereal.email',
-      port: parseInt(process.env.EMAIL_PORT || '587'),
-      secure: process.env.EMAIL_SECURE === 'true',
+      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // true for 465, false for other ports
       auth: {
-        user: process.env.EMAIL_USER || '',
-        pass: process.env.EMAIL_PASSWORD || '',
+        user: emailConfig.EMAIL_USER,
+        pass: emailConfig.EMAIL_PASSWORD,
       },
     });
   }
@@ -42,7 +44,7 @@ class EmailService {
   }
 
   async sendVerificationEmail(user: User) {
-    const verificationUrl = user.generateVerificationUrl(process.env.FRONTEND_URL || 'http://localhost:3000');
+    const verificationUrl = user.generateVerificationUrl(emailConfig.FRONTEND_URL);
     
     // Read the email template
     const templatePath = path.join(__dirname, '../../templates/verification-email.ejs');

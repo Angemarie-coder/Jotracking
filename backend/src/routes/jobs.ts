@@ -1,59 +1,94 @@
 import { Request, Response, NextFunction } from 'express';
-import { request } from 'node:http';
-const express = require('express');
-const { check, validationResult } = require('express-validator');
-const jwt = require('jsonwebtoken');
-const router = express.Router();
-const Job = require('../models/Job');
+import { Router } from 'express';
+import { check, validationResult } from 'express-validator';
+import Job, { JobStatus } from '../models/Job.model';
+import User from '../models/User.model';
+import { protect, AuthenticatedRequest } from '../middleware/auth.middleware';
 
-// JWT verification middleware
-function verifyToken(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) {
-    return res.status(401).json({ 
-      success: false,
-      error: "Unauthorized: No token provided" 
-    });
-  }
+const router = Router();
 
-  const token = authHeader.substring(7);
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
-    
-    // Ensure the decoded token has the expected shape
-    if (typeof decoded === 'string' || !('userId' in decoded)) {
-      throw new Error('Invalid token structure');
-    }
-    
-    req.user = decoded as { userId: number; email: string; isAdmin: boolean; };
-    next();
-  } catch (err) {
-    return res.status(401).json({ 
-      success: false,
-      error: "Unauthorized: Invalid token" 
-    });
-  }
-}
+// Use the shared protect middleware instead of custom verifyToken
 
-// Validation middleware
+// Validation middleware for creating jobs
 const validateJob = [
   check('title').trim().notEmpty().withMessage('Title is required'),
   check('company').trim().notEmpty().withMessage('Company is required'),
-  check('status').isIn(['Applied', 'Interview', 'Offer', 'Rejected', 'Archived']).withMessage('Invalid status')
+  check('status').optional().isIn(Object.values(JobStatus)).withMessage('Invalid status'),
+  check('location').optional().trim(),
+  check('description').optional().trim(),
+  check('url').optional().trim().custom((value) => {
+    if (value && value !== '' && !value.match(/^https?:\/\/.+/)) {
+      throw new Error('URL must start with http:// or https://');
+    }
+    return true;
+  }),
+  check('salary').optional().trim(),
+  check('notes').optional().trim(),
 ];
 
-// GET /api/jobs - Get all jobs for the authenticated user with pagination
-router.get('/', verifyToken, async (req: Request, res: Response) => {
+// Validation middleware for updating jobs (all fields optional)
+const validateJobUpdate = [
+  check('title').optional().trim().notEmpty().withMessage('Title cannot be empty'),
+  check('company').optional().trim().notEmpty().withMessage('Company cannot be empty'),
+  check('status').optional().isIn(Object.values(JobStatus)).withMessage('Invalid status'),
+  check('location').optional().trim(),
+  check('description').optional().trim(),
+  check('url').optional().trim().custom((value) => {
+    if (value && value !== '' && !value.match(/^https?:\/\/.+/)) {
+      throw new Error('URL must start with http:// or https://');
+    }
+    return true;
+  }),
+  check('salary').optional().trim(),
+  check('notes').optional().trim(),
+];
+
+// GET /api/jobs - Get all jobs for the authenticated user with filtering and pagination
+router.get('/', protect, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const offset = (page - 1) * limit;
+    const status = req.query.status as string;
+    const search = req.query.search as string;
+    const company = req.query.company as string;
+    const location = req.query.location as string;
+
+    // Build where clause
+    const whereClause: any = { userId: req.user!.id };
+    
+    if (status && Object.values(JobStatus).includes(status as JobStatus)) {
+      whereClause.status = status;
+    }
+    
+    if (search) {
+      whereClause[require('sequelize').Op.or] = [
+        { title: { [require('sequelize').Op.iLike]: `%${search}%` } },
+        { company: { [require('sequelize').Op.iLike]: `%${search}%` } },
+        { description: { [require('sequelize').Op.iLike]: `%${search}%` } },
+      ];
+    }
+    
+    if (company) {
+      whereClause.company = { [require('sequelize').Op.iLike]: `%${company}%` };
+    }
+    
+    if (location) {
+      whereClause.location = { [require('sequelize').Op.iLike]: `%${location}%` };
+    }
 
     const { count, rows: jobs } = await Job.findAndCountAll({
-      where: { userId: req.user!.userId },
+      where: whereClause,
       order: [['createdAt', 'DESC']],
       limit,
       offset,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        }
+      ]
     });
 
     const totalPages = Math.ceil(count / limit);
@@ -79,14 +114,66 @@ router.get('/', verifyToken, async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/jobs/stats - Get dashboard statistics
+router.get('/stats', protect, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const stats = await Job.findAll({
+      where: { userId: req.user!.id },
+      attributes: [
+        'status',
+        [require('sequelize').fn('COUNT', require('sequelize').col('id')), 'count']
+      ],
+      group: ['status'],
+      raw: true
+    });
+
+    const totalJobs = await Job.count({
+      where: { userId: req.user!.id }
+    });
+
+    const statsMap = {
+      total: totalJobs,
+      saved: 0,
+      applied: 0,
+      interviewing: 0,
+      offer: 0,
+      rejected: 0
+    };
+
+    stats.forEach((stat: any) => {
+      if (stat.status && stat.count) {
+        statsMap[stat.status as keyof typeof statsMap] = parseInt(stat.count);
+      }
+    });
+
+    res.json({
+      success: true,
+      data: statsMap
+    });
+  } catch (error) {
+    console.error("Get stats error:", error);
+    res.status(500).json({ 
+      success: false,
+      error: "Failed to fetch statistics" 
+    });
+  }
+});
+
 // GET /api/jobs/:id - Get a single job by ID
-router.get('/:id', verifyToken, async (req: Request, res: Response) => {
+router.get('/:id', protect, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const job = await Job.findOne({
       where: { 
         id: req.params.id, 
-        userId: req.user!.userId
+        userId: req.user!.id
       },
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        }
+      ]
     });
 
     if (!job) {
@@ -110,7 +197,7 @@ router.get('/:id', verifyToken, async (req: Request, res: Response) => {
 });
 
 // POST /api/jobs - Create a new job
-router.post('/', [verifyToken, ...validateJob], async (req: Request, res: Response) => {
+router.post('/', [protect, ...validateJob], async (req: AuthenticatedRequest, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
@@ -122,12 +209,22 @@ router.post('/', [verifyToken, ...validateJob], async (req: Request, res: Respon
   try {
     const job = await Job.create({
       ...req.body,
-      userId: req.user!.userId,
+      userId: req.user!.id,
+    });
+
+    const createdJob = await Job.findByPk(job.id, {
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        }
+      ]
     });
 
     res.status(201).json({
       success: true,
-      data: job
+      data: createdJob
     });
   } catch (error) {
     console.error("Create job error:", error);
@@ -139,7 +236,7 @@ router.post('/', [verifyToken, ...validateJob], async (req: Request, res: Respon
 });
 
 // PUT /api/jobs/:id - Update a job
-router.put('/:id', [verifyToken, ...validateJob], async (req: Request, res: Response) => {
+router.put('/:id', [protect, ...validateJobUpdate], async (req: AuthenticatedRequest, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
@@ -149,23 +246,32 @@ router.put('/:id', [verifyToken, ...validateJob], async (req: Request, res: Resp
   }
 
   try {
-    const [updated] = await Job.update(req.body, {
+    const job = await Job.findOne({
       where: { 
         id: req.params.id, 
-        userId: req.user!.userId 
-      },
-      returning: true,
+        userId: req.user!.id 
+      }
     });
 
-    if (!updated) {
+    if (!job) {
       return res.status(404).json({
         success: false,
         error: "Job not found or not authorized"
       });
     }
 
-    const updatedJob = await Job.findByPk(req.params.id);
+    await job.update(req.body);
     
+    const updatedJob = await Job.findByPk(req.params.id, {
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        }
+      ]
+    });
+
     res.json({
       success: true,
       data: updatedJob
@@ -180,21 +286,23 @@ router.put('/:id', [verifyToken, ...validateJob], async (req: Request, res: Resp
 });
 
 // DELETE /api/jobs/:id - Delete a job
-router.delete('/:id', verifyToken, async (req: Request, res: Response) => {
+router.delete('/:id', protect, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const deleted = await Job.destroy({
+    const job = await Job.findOne({
       where: { 
         id: req.params.id, 
-        userId: req.user!.userId 
-      },
+        userId: req.user!.id 
+      }
     });
 
-    if (!deleted) {
+    if (!job) {
       return res.status(404).json({
         success: false,
         error: "Job not found or not authorized"
       });
     }
+
+    await job.destroy();
 
     res.status(204).send();
   } catch (error) {
@@ -206,4 +314,4 @@ router.delete('/:id', verifyToken, async (req: Request, res: Response) => {
   }
 });
 
-module.exports = router;
+export default router;

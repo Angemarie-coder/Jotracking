@@ -34,6 +34,10 @@ const connectDB = async () => {
       database: env.DB_NAME,
       models: [User, Job],
       logging: false, // Disable SQL logging for cleaner output
+      define: {
+        underscored: true, // Use snake_case for column names
+        freezeTableName: true, // Prevent Sequelize from pluralizing table names
+      },
     });
 
     await sequelize.authenticate();

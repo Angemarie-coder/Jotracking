@@ -76,6 +76,8 @@ export interface JobFilters {
   search?: string;
   company?: string;
   location?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface DashboardStats {
@@ -91,6 +93,7 @@ export interface DashboardStats {
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
+  EmailVerification: { token: string; email: string } | undefined;
   MainTabs: undefined;
   AddJob: undefined;
   JobDetail: { jobId: number };

@@ -1,14 +1,33 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native';
-import { TextInput, Button, Text, Card, Title, Paragraph } from 'react-native-paper';
+import { 
+  View, 
+  StyleSheet, 
+  KeyboardAvoidingView, 
+  Platform, 
+  ScrollView, 
+  Alert,
+  useWindowDimensions,
+  StatusBar
+} from 'react-native';
+import { TextInput, Text, Card, Title, useTheme } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { NavigationProps } from '../types';
+import Button from '../components/Button';
+import { getResponsiveLayout, getScreenPadding } from '../utils/responsive';
+import { colors, spacing, typography, borderRadius, shadows } from '../theme';
 
-const RegisterScreen = ({ navigation }: any) => {
+const RegisterScreen = ({ navigation }: { navigation: NavigationProps }) => {
+  const theme = useTheme();
+  const { width } = useWindowDimensions();
+  const responsiveLayout = getResponsiveLayout();
+  
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
 
@@ -39,9 +58,7 @@ const RegisterScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      console.log('Starting registration with:', { firstName, lastName, email });
-      const response = await register({ firstName, lastName, email, password });
-      console.log('Registration response:', response);
+      await register({ firstName, lastName, email, password });
       
       // Show success message and navigate to login
       Alert.alert(
@@ -55,95 +72,122 @@ const RegisterScreen = ({ navigation }: any) => {
         ]
       );
     } catch (error: any) {
-      console.error('Registration error details:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        stack: error.stack
-      });
-      Alert.alert('Registration Failed', error.response?.data?.error || error.message || 'An error occurred');
+      Alert.alert('Registration Failed', error.response?.data?.message || 'An error occurred');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Card style={styles.card}>
-          <Card.Content>
-            <Title style={styles.title}>Create Account</Title>
-            <Paragraph style={styles.subtitle}>Join us to track your job applications</Paragraph>
-            
-            <TextInput
-              label="First Name"
-              value={firstName}
-              onChangeText={setFirstName}
-              mode="outlined"
-              style={styles.input}
-            />
-            
-            <TextInput
-              label="Last Name"
-              value={lastName}
-              onChangeText={setLastName}
-              mode="outlined"
-              style={styles.input}
-            />
-            
-            <TextInput
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              mode="outlined"
-              style={styles.input}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            
-            <TextInput
-              label="Password"
-              value={password}
-              onChangeText={setPassword}
-              mode="outlined"
-              style={styles.input}
-              secureTextEntry
-            />
-            
-            <TextInput
-              label="Confirm Password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              mode="outlined"
-              style={styles.input}
-              secureTextEntry
-            />
-            
-            <Button
-              mode="contained"
-              onPress={handleRegister}
-              style={[
-                styles.button,
-                !isFormValid && { backgroundColor: '#ccc' }
-              ]}
-              loading={loading}
-              disabled={loading || !isFormValid}
-            >
-              Create Account
-            </Button>
-            
-            <View style={styles.footer}>
-              <Text>Already have an account? </Text>
-              <Button
-                mode="text"
-                onPress={() => navigation.navigate('Login')}
-                compact
-              >
-                Sign In
-              </Button>
+      <StatusBar barStyle={theme.dark ? 'light-content' : 'dark-content'} />
+      
+      <ScrollView 
+        contentContainerStyle={[
+          styles.scrollContent,
+          { padding: getScreenPadding() }
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Card style={[styles.card]}>
+          <Card.Content style={styles.cardContent}>
+            <View style={styles.logoContainer}>
+              <MaterialCommunityIcons 
+                name="briefcase-account" 
+                size={48} 
+                color={theme.colors.primary} 
+              />
+              <Title style={styles.title}>Create Account</Title>
+              <Text style={styles.subtitle}>Fill in your details to get started</Text>
+            </View>
+
+            <View style={styles.formContainer}>
+              <View style={styles.nameContainer}>
+                <TextInput
+                  label="First Name"
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  mode="outlined"
+                  style={[styles.input, styles.nameInput]}
+                  autoCapitalize="words"
+                  disabled={loading}
+                />
+                <TextInput
+                  label="Last Name"
+                  value={lastName}
+                  onChangeText={setLastName}
+                  mode="outlined"
+                  style={[styles.input, styles.nameInput]}
+                  autoCapitalize="words"
+                  disabled={loading}
+                />
+              </View>
+
+              <TextInput
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
+                mode="outlined"
+                style={styles.input}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                disabled={loading}
+                left={<TextInput.Icon icon="email" />}
+              />
+
+              <TextInput
+                label="Password"
+                value={password}
+                onChangeText={setPassword}
+                mode="outlined"
+                style={styles.input}
+                secureTextEntry={!showPassword}
+                disabled={loading}
+                left={<TextInput.Icon icon="lock" />}
+                right={
+                  <TextInput.Icon 
+                    icon={showPassword ? "eye-off" : "eye"} 
+                    onPress={() => setShowPassword(!showPassword)}
+                  />
+                }
+              />
+
+              <TextInput
+                label="Confirm Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                mode="outlined"
+                style={styles.input}
+                secureTextEntry={!showPassword}
+                disabled={loading}
+                left={<TextInput.Icon icon="lock" />}
+              />
+
+              <View style={styles.buttonContainer}>
+                <Button
+                  mode="contained"
+                  onPress={handleRegister}
+                  loading={loading}
+                  disabled={!isFormValid || loading}
+                  title={loading ? 'Creating Account...' : 'Create Account'}
+                  style={styles.registerButton}
+                />
+
+                <View style={styles.loginContainer}>
+                  <Text style={styles.loginText}>Already have an account? </Text>
+                  <Button 
+                    mode="text" 
+                    onPress={() => navigation.navigate('Login')}
+                    textColor={theme.colors.primary}
+                    size="small"
+                    disabled={loading}
+                    title="Log In"
+                  />
+                </View>
+              </View>
             </View>
           </Card.Content>
         </Card>
@@ -155,37 +199,65 @@ const RegisterScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
-  scrollContainer: {
+  scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
   },
   card: {
-    elevation: 4,
+    margin: 16,
+    borderRadius: borderRadius.md,
+    ...shadows.md,
+  },
+  cardContent: {
+    padding: spacing.xxl,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: spacing.xxl,
   },
   title: {
+    ...typography.h3,
     textAlign: 'center',
-    marginBottom: 8,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
   },
   subtitle: {
+    ...typography.body1,
+    color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 24,
-    color: '#666',
+  },
+  formContainer: {
+    width: '100%',
+  },
+  nameContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  nameInput: {
+    flex: 1,
+    marginHorizontal: 4,
   },
   input: {
-    marginBottom: 16,
+    marginBottom: spacing.md,
+    backgroundColor: 'transparent',
   },
-  button: {
-    marginTop: 8,
-    marginBottom: 16,
+  buttonContainer: {
+    marginTop: spacing.md,
   },
-  footer: {
+  registerButton: {
+    marginTop: spacing.sm,
+  },
+  loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: spacing.lg,
+  },
+  loginText: {
+    ...typography.body2,
+    color: colors.textSecondary,
   },
 });
 
-export default RegisterScreen; 
+export default RegisterScreen;

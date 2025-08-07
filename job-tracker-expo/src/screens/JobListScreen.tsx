@@ -1,210 +1,292 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl, Alert } from 'react-native';
-import { Card, Title, Paragraph, Button, Text, ActivityIndicator, Chip, Searchbar, Menu, Divider } from 'react-native-paper';
+import { View, StyleSheet, FlatList, RefreshControl, useWindowDimensions, ScrollView } from 'react-native';
+import { Searchbar, Card, Title, Paragraph, ActivityIndicator, useTheme, Text, Chip, Snackbar } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
-import { Job, JobStatus, JobFilters, NavigationProps } from '../types';
+import { Job, JobStatus, NavigationProps, JobFilters } from '../types';
 import apiService from '../services/api';
+import Button from '../components/Button';
+import useApi from '../hooks/useApi';
+import ErrorHandler from '../utils/errorHandler';
 
 const JobListScreen = () => {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<JobStatus | undefined>(undefined);
-  const [filterMenuVisible, setFilterMenuVisible] = useState(false);
+  const theme = useTheme();
+  const { width } = useWindowDimensions();
+  const isTablet = width >= 768;
   const navigation = useNavigation<NavigationProps>();
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState<JobStatus | 'all'>('all');
+  const [filters, setFilters] = useState<JobFilters>({});
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  const loadJobs = async () => {
+  // API hook for jobs
+  const {
+    data: jobs,
+    loading,
+    error,
+    execute: loadJobs,
+    reset: resetJobs,
+    setData: setJobs
+  } = useApi<Job[]>(() => apiService.getJobs(filters));
+
+  const loadJobsWithFilters = async (newFilters: JobFilters, resetPage: boolean = false) => {
+    const currentPage = resetPage ? 1 : page;
+    const updatedFilters = { ...newFilters, page: currentPage, limit: 20 };
+    
     try {
-      const filters: JobFilters = {
-        search: searchQuery || undefined,
-        status: statusFilter,
-      };
-      const jobsData = await apiService.getJobs(filters);
-      setJobs(jobsData);
+      const result = await apiService.getJobs(updatedFilters);
+      if (resetPage || currentPage === 1) {
+        setJobs(result);
+      } else {
+        setJobs(prev => prev ? [...prev, ...result] : result);
+      }
+      setHasMore(result.length === 20);
+      setPage(currentPage + 1);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load jobs');
-    } finally {
-      setLoading(false);
+      const appError = ErrorHandler.handle(error, 'Jobs Error');
+      ErrorHandler.showAlert(appError);
     }
   };
 
   const onRefresh = async () => {
-    setRefreshing(true);
-    await loadJobs();
-    setRefreshing(false);
+    setPage(1);
+    setHasMore(true);
+    resetJobs();
+    await loadJobsWithFilters(filters, true);
+  };
+
+  const loadMore = async () => {
+    if (!loading && hasMore) {
+      await loadJobsWithFilters(filters);
+    }
   };
 
   useEffect(() => {
-    loadJobs();
-  }, [searchQuery, statusFilter]);
+    const newFilters: JobFilters = {};
+    if (searchQuery) newFilters.search = searchQuery;
+    if (selectedStatus !== 'all') newFilters.status = selectedStatus;
+    
+    setFilters(newFilters);
+    setPage(1);
+    setHasMore(true);
+    loadJobsWithFilters(newFilters, true);
+  }, [searchQuery, selectedStatus]);
 
   const getStatusColor = (status: JobStatus) => {
     switch (status) {
-      case JobStatus.APPLIED: return '#2196F3';
-      case JobStatus.INTERVIEWING: return '#FF9800';
-      case JobStatus.OFFER: return '#4CAF50';
-      case JobStatus.REJECTED: return '#F44336';
-      case JobStatus.SAVED: return '#9E9E9E';
-      default: return '#9E9E9E';
+      case JobStatus.SAVED:
+        return '#4CAF50';
+      case JobStatus.APPLIED:
+        return '#2196F3';
+      case JobStatus.INTERVIEWING:
+        return '#FF9800';
+      case JobStatus.OFFER:
+        return '#9C27B0';
+      case JobStatus.REJECTED:
+        return '#F44336';
+      default:
+        return '#9E9E9E';
     }
   };
 
-  const getStatusLabel = (status: JobStatus) => {
-    switch (status) {
-      case JobStatus.APPLIED: return 'Applied';
-      case JobStatus.INTERVIEWING: return 'Interviewing';
-      case JobStatus.OFFER: return 'Offer';
-      case JobStatus.REJECTED: return 'Rejected';
-      case JobStatus.SAVED: return 'Saved';
-      default: return status;
-    }
-  };
-
-  const renderJobItem = ({ item }: { item: Job }) => (
-    <Card style={styles.jobCard} onPress={() => (navigation as any).navigate('JobDetail', { jobId: item.id })}>
-      <Card.Content>
-        <View style={styles.jobHeader}>
-          <View style={styles.jobInfo}>
-            <Title style={styles.jobTitle}>{item.title}</Title>
-            <Paragraph style={styles.jobCompany}>{item.company}</Paragraph>
-            {item.location && (
-              <Text style={styles.jobLocation}>{item.location}</Text>
-            )}
-          </View>
-          <Chip
-            mode="outlined"
-            textStyle={{ color: getStatusColor(item.status) }}
-            style={[styles.statusChip, { borderColor: getStatusColor(item.status) }]}
-          >
-            {getStatusLabel(item.status)}
-          </Chip>
-        </View>
-        
-        {item.salary && (
-          <Text style={styles.jobSalary}>Salary: {item.salary}</Text>
-        )}
-        
-        {item.appliedDate && (
-          <Text style={styles.jobDate}>Applied: {new Date(item.appliedDate).toLocaleDateString()}</Text>
-        )}
-      </Card.Content>
-    </Card>
-  );
+  const statusFilters: Array<{ label: string; value: JobStatus | 'all' }> = [
+    { label: 'All', value: 'all' },
+    { label: 'Saved', value: JobStatus.SAVED },
+    { label: 'Applied', value: JobStatus.APPLIED },
+    { label: 'Interview', value: JobStatus.INTERVIEWING },
+    { label: 'Offer', value: JobStatus.OFFER },
+    { label: 'Rejected', value: JobStatus.REJECTED },
+  ];
 
   const clearFilters = () => {
     setSearchQuery('');
-    setStatusFilter(undefined);
+    setSelectedStatus('all');
   };
 
-  if (loading) {
+  if (loading && !jobs) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Title style={styles.title}>Job Applications</Title>
-        <Button
-          mode="contained"
-          onPress={() => (navigation as any).navigate('AddJob')}
-          icon="plus"
-        >
-          Add Job
-        </Button>
-      </View>
-
-      {/* Search and Filters */}
-      <View style={styles.searchContainer}>
-        <Searchbar
-          placeholder="Search jobs..."
-          onChangeText={setSearchQuery}
-          value={searchQuery}
-          style={styles.searchbar}
-        />
-        
-        <Menu
-          visible={filterMenuVisible}
-          onDismiss={() => setFilterMenuVisible(false)}
-          anchor={
-            <Button
-              mode="outlined"
-              onPress={() => setFilterMenuVisible(true)}
-              icon="filter"
-            >
-              Filter
-            </Button>
-          }
-        >
-          <Menu.Item
-            onPress={() => {
-              setStatusFilter(undefined);
-              setFilterMenuVisible(false);
-            }}
-            title="All Status"
+    <>
+      <View style={styles.container}>
+        <View style={styles.searchContainer}>
+          <Searchbar
+            placeholder="Search jobs..."
+            onChangeText={setSearchQuery}
+            value={searchQuery}
+            style={styles.searchBar}
+            placeholderTextColor={theme.colors.onSurfaceVariant}
+            iconColor={theme.colors.onSurfaceVariant}
+            inputStyle={{ color: theme.colors.onSurface }}
           />
-          <Divider />
-          {Object.values(JobStatus).map((status) => (
-            <Menu.Item
-              key={status}
-              onPress={() => {
-                setStatusFilter(status);
-                setFilterMenuVisible(false);
+          
+          <Button
+            mode="contained"
+            onPress={() => navigation.navigate('AddJob')}
+            style={styles.addButton}
+            title="Add Job"
+          />
+        </View>
+
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.statusFilter}
+          contentContainerStyle={styles.statusFilterContent}
+        >
+          {statusFilters.map((filter) => (
+            <Chip
+              key={filter.value}
+              mode={selectedStatus === filter.value ? 'flat' : 'outlined'}
+              selected={selectedStatus === filter.value}
+              onPress={() => setSelectedStatus(filter.value)}
+              style={[
+                styles.statusChip,
+                selectedStatus === filter.value && {
+                  backgroundColor: filter.value === 'all' 
+                    ? theme.colors.primary 
+                    : getStatusColor(filter.value as JobStatus),
+                  borderColor: 'transparent',
+                },
+              ]}
+              textStyle={{
+                color: selectedStatus === filter.value 
+                  ? '#FFFFFF' 
+                  : theme.colors.onSurface,
               }}
-              title={getStatusLabel(status)}
-            />
+            >
+              {filter.label}
+            </Chip>
           ))}
-        </Menu>
+        </ScrollView>
+
+        <FlatList
+          data={jobs || []}
+          keyExtractor={(item) => item.id.toString()}
+          refreshControl={
+            <RefreshControl
+              refreshing={loading && page === 1}
+              onRefresh={onRefresh}
+              colors={[theme.colors.primary]}
+            />
+          }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.1}
+          ListFooterComponent={
+            loading && page > 1 ? (
+              <View style={styles.loadingMore}>
+                <ActivityIndicator size="small" color={theme.colors.primary} />
+                <Text style={styles.loadingMoreText}>Loading more jobs...</Text>
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {searchQuery || selectedStatus !== 'all' 
+                  ? 'No jobs match your filters' 
+                  : 'No jobs found'
+                }
+              </Text>
+              {searchQuery || selectedStatus !== 'all' ? (
+                <Button
+                  mode="outlined"
+                  onPress={clearFilters}
+                  style={styles.clearFiltersButton}
+                  title="Clear Filters"
+                />
+              ) : (
+                <Button
+                  mode="contained"
+                  onPress={() => navigation.navigate('AddJob')}
+                  style={styles.addFirstJobButton}
+                  title="Add Your First Job"
+                />
+              )}
+            </View>
+          }
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => (
+            <Card
+              style={styles.jobCard}
+              onPress={() => navigation.navigate('JobDetail', { jobId: item.id })}
+            >
+              <Card.Content>
+                <View style={styles.jobHeader}>
+                  <Title style={styles.jobTitle} numberOfLines={1}>
+                    {item.title}
+                  </Title>
+                  <Chip
+                    compact
+                    style={[
+                      styles.statusChip,
+                      { 
+                        backgroundColor: `${getStatusColor(item.status)}20`,
+                        borderColor: getStatusColor(item.status),
+                      },
+                    ]}
+                    textStyle={{
+                      color: getStatusColor(item.status),
+                      fontSize: 12,
+                    }}
+                  >
+                    {item.status}
+                  </Chip>
+                </View>
+                
+                <Paragraph style={styles.companyName} numberOfLines={1}>
+                  {item.company}
+                </Paragraph>
+                
+                <View style={styles.jobMeta}>
+                  {item.location && (
+                    <View style={styles.metaItem}>
+                      <Text style={styles.metaText} numberOfLines={1}>
+                        📍 {item.location}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {item.createdAt && (
+                    <View style={styles.metaItem}>
+                      <Text style={styles.metaText} numberOfLines={1}>
+                        📅 {new Date(item.createdAt).toLocaleDateString()}
+                      </Text>
+                    </View>
+                  )}
+
+                  {item.salary && (
+                    <View style={styles.metaItem}>
+                      <Text style={styles.metaText} numberOfLines={1}>
+                        💰 {item.salary}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </Card.Content>
+            </Card>
+          )}
+        />
       </View>
 
-      {/* Active Filters */}
-      {(searchQuery || statusFilter) && (
-        <View style={styles.activeFilters}>
-          <Text style={styles.filterLabel}>Active filters:</Text>
-          {searchQuery && (
-            <Chip style={styles.filterChip} onClose={() => setSearchQuery('')}>
-              Search: {searchQuery}
-            </Chip>
-          )}
-          {statusFilter && (
-            <Chip style={styles.filterChip} onClose={() => setStatusFilter(undefined)}>
-              Status: {getStatusLabel(statusFilter)}
-            </Chip>
-          )}
-          <Button mode="text" onPress={clearFilters} compact>
-            Clear All
-          </Button>
-        </View>
-      )}
-
-      {/* Job List */}
-      <FlatList
-        data={jobs}
-        renderItem={renderJobItem}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No jobs found</Text>
-            <Button
-              mode="contained"
-              onPress={() => (navigation as any).navigate('AddJob')}
-              style={styles.emptyButton}
-            >
-              Add Your First Job
-            </Button>
-          </View>
-        }
-      />
-    </View>
+      {/* Error Snackbar */}
+      <Snackbar
+        visible={!!error}
+        onDismiss={() => resetJobs()}
+        action={{
+          label: 'Retry',
+          onPress: onRefresh,
+        }}
+      >
+        {error?.message || 'An error occurred'}
+      </Snackbar>
+    </>
   );
 };
 
@@ -213,88 +295,88 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  loadingContainer: {
+  loader: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
   searchContainer: {
     flexDirection: 'row',
     padding: 16,
-    backgroundColor: '#fff',
-    gap: 8,
+    paddingBottom: 8,
   },
-  searchbar: {
+  searchBar: {
     flex: 1,
+    marginRight: 12,
+    height: 48,
+    borderRadius: 8,
+    elevation: 2,
   },
-  activeFilters: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+  addButton: {
+    height: 48,
+    justifyContent: 'center',
+    borderRadius: 8,
   },
-  filterLabel: {
+  statusFilter: {
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    marginBottom: 8,
+  },
+  statusFilterContent: {
+    paddingHorizontal: 8,
+  },
+  statusChip: {
     marginRight: 8,
-    color: '#666',
+    borderRadius: 16,
+    borderWidth: 1,
+    backgroundColor: 'transparent',
   },
-  filterChip: {
-    marginRight: 8,
-  },
-  listContainer: {
+  listContent: {
     padding: 16,
+    paddingTop: 0,
   },
   jobCard: {
-    marginBottom: 12,
+    marginBottom: 16,
+    borderRadius: 12,
+    elevation: 2,
   },
   jobHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  jobInfo: {
-    flex: 1,
+    alignItems: 'center',
+    marginBottom: 4,
   },
   jobTitle: {
+    flex: 1,
+    marginRight: 8,
     fontSize: 18,
-    fontWeight: '600',
+    lineHeight: 24,
   },
-  jobCompany: {
+  companyName: {
     fontSize: 16,
     color: '#666',
+    marginBottom: 8,
+  },
+  jobMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     marginTop: 4,
   },
-  jobLocation: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 2,
+  metaItem: {
+    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginRight: 8,
+    marginBottom: 8,
   },
-  jobSalary: {
-    fontSize: 14,
-    color: '#4CAF50',
-    marginTop: 8,
-  },
-  jobDate: {
+  metaText: {
     fontSize: 12,
-    color: '#999',
-    marginTop: 4,
-  },
-  statusChip: {
-    marginLeft: 8,
+    color: '#666',
   },
   emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
     padding: 32,
   },
@@ -302,10 +384,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     marginBottom: 16,
+    textAlign: 'center',
   },
-  emptyButton: {
+  clearFiltersButton: {
+    marginTop: 16,
+    borderColor: '#666',
+  },
+  addFirstJobButton: {
+    marginTop: 16,
+  },
+  loadingMore: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  loadingMoreText: {
     marginTop: 8,
+    color: '#666',
+    fontSize: 14,
   },
 });
 
-export default JobListScreen; 
+export default JobListScreen;

@@ -16,9 +16,7 @@ import Job from './Job.model';
 
 @Table({
   tableName: 'users',
-  timestamps: true,
-  underscored: false,  // Use camelCase for column names
-  freezeTableName: true  // Prevent Sequelize from pluralizing the table name
+  timestamps: true
 })
 export default class User extends Model {
   @PrimaryKey
@@ -29,14 +27,12 @@ export default class User extends Model {
   @Column({
     type: DataType.STRING,
     allowNull: false,
-    field: 'firstName'  // Explicitly set the column name to match the database
   })
   firstName!: string;
 
   @Column({
     type: DataType.STRING,
     allowNull: false,
-    field: 'lastName'  // Explicitly set the column name to match the database
   })
   lastName!: string;
 
@@ -58,43 +54,27 @@ export default class User extends Model {
 
   @Column({
     type: DataType.BOOLEAN,
-    field: 'isVerified',
     defaultValue: false,
   })
   isVerified!: boolean;
 
   @Column({
     type: DataType.BOOLEAN,
-    field: 'isAdmin',
     defaultValue: false,
   })
   isAdmin!: boolean;
 
   @Column({
     type: DataType.STRING,
-    field: 'verificationToken',
     allowNull: true,
   })
   verificationToken!: string | null;
 
   @Column({
     type: DataType.DATE,
-    field: 'verificationTokenExpires',
     allowNull: true,
   })
   verificationTokenExpires!: Date | null;
-
-  @Column({
-    type: DataType.DATE,
-    field: 'createdAt',
-  })
-  createdAt!: Date;
-
-  @Column({
-    type: DataType.DATE,
-    field: 'updatedAt',
-  })
-  updatedAt!: Date;
 
   // Associations
   @HasMany(() => Job)
@@ -123,6 +103,15 @@ export default class User extends Model {
   }
 
   generateVerificationUrl(baseUrl: string): string {
-    return `${baseUrl}/verify-email?token=${this.verificationToken}&email=${encodeURIComponent(this.email)}`;
+    if (baseUrl.startsWith('jobtracker://')) {
+      // Deep link format for mobile app (local development)
+      return `${baseUrl}?token=${this.verificationToken}&email=${encodeURIComponent(this.email)}`;
+    } else if (baseUrl.startsWith('https://') || baseUrl.startsWith('http://')) {
+      // Web URL format (production or local web)
+      return `${baseUrl}?token=${this.verificationToken}&email=${encodeURIComponent(this.email)}`;
+    } else {
+      // Fallback web URL format
+      return `${baseUrl}/verify-email?token=${this.verificationToken}&email=${encodeURIComponent(this.email)}`;
+    }
   }
 }

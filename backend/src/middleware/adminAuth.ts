@@ -3,7 +3,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 
 // Define the user payload that will be stored in the JWT
 export interface JwtUserPayload extends JwtPayload {
-  userId: string;  // Keep as string for JWT compatibility
+  id: string;  // Keep as string for JWT compatibility
   email: string;
   isAdmin: boolean;
 }
@@ -75,8 +75,8 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
       process.env.JWT_SECRET || 'your-secret-key'
     ) as JwtUserPayload;
 
-    // Convert userId from string (JWT) to number (database)
-    const userId = parseInt(decoded.userId, 10);
+    // Convert id from string (JWT) to number (database)
+    const userId = parseInt(decoded.id, 10);
     if (isNaN(userId)) {
       throw new Error('Invalid user ID in token');
     }

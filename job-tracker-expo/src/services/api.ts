@@ -1,5 +1,6 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { environment } from '../config/environment';
 import {
   User,
   Job,
@@ -13,27 +14,28 @@ import {
   DashboardStats
 } from '../types';
 
-// For development, use your computer's IP address instead of localhost
-// You can find your IP by running 'ipconfig' in Windows
-const API_BASE_URL = 'http://192.168.1.65:5000/api'; // Update this IP to match your computer's IP
-
 class ApiService {
   private api: AxiosInstance;
 
   constructor() {
     this.api = axios.create({
-      baseURL: API_BASE_URL,
+      baseURL: environment.apiBaseUrl,
       headers: {
         'Content-Type': 'application/json',
       },
+      timeout: environment.timeout,
     });
 
     // Request interceptor to add auth token
     this.api.interceptors.request.use(
       async (config) => {
-        const token = await AsyncStorage.getItem('authToken');
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+        try {
+          const token = await AsyncStorage.getItem('authToken');
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+        } catch (error) {
+          console.error('Error getting auth token:', error);
         }
         return config;
       },
@@ -42,80 +44,157 @@ class ApiService {
       }
     );
 
-    // Response interceptor to handle auth errors
+    // Response interceptor to handle auth errors and common errors
     this.api.interceptors.response.use(
       (response) => response,
-      async (error) => {
+      async (error: AxiosError) => {
         if (error.response?.status === 401) {
-          await AsyncStorage.removeItem('authToken');
-          await AsyncStorage.removeItem('user');
+          // Clear auth data on unauthorized
+          try {
+            await AsyncStorage.removeItem('authToken');
+            await AsyncStorage.removeItem('user');
+          } catch (storageError) {
+            console.error('Error clearing auth data:', storageError);
+          }
         }
+        
+        // Log error for debugging
+        console.error('API Error:', {
+          status: error.response?.status,
+          message: error.response?.data,
+          url: error.config?.url
+        });
+        
         return Promise.reject(error);
       }
     );
   }
 
+  // Helper method to handle API responses
+  private handleResponse<T>(response: AxiosResponse<ApiResponse<T>>): T {
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'API request failed');
+    }
+    return response.data.data!;
+  }
+
+  // Helper method to handle auth responses specifically
+  private handleAuthResponse(response: AxiosResponse<ApiResponse<AuthResponse>>): AuthResponse {
+    if (!response.data.success) {
+      throw new Error(response.data.error || 'API request failed');
+    }
+    return response.data.data!;
+  }
+
+  // Helper method to handle errors
+  private handleError(error: any): never {
+    if (error.response?.data?.error) {
+      throw new Error(error.response.data.error);
+    }
+    if (error.message) {
+      throw new Error(error.message);
+    }
+    throw new Error('An unexpected error occurred');
+  }
+
   // Auth endpoints
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    const response: AxiosResponse<any> = await this.api.post('/auth/login', credentials);
-    return {
-      user: response.data.user,
-      token: response.data.token
-    };
+    try {
+      const response: AxiosResponse<ApiResponse<AuthResponse>> = await this.api.post('/auth/login', credentials);
+      return this.handleAuthResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async register(userData: RegisterRequest): Promise<AuthResponse> {
-    console.log('API: Making register request to:', `${this.api.defaults.baseURL}/auth/register`);
-    console.log('API: Register data:', userData);
-    
-    const response: AxiosResponse<any> = await this.api.post('/auth/register', userData);
-    console.log('API: Register response:', response.data);
-    
-    return {
-      user: response.data.user,
-      token: response.data.token
-    };
+    try {
+      const response: AxiosResponse<ApiResponse<AuthResponse>> = await this.api.post('/auth/register', userData);
+      return this.handleAuthResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async getCurrentUser(): Promise<User> {
-    const response: AxiosResponse<any> = await this.api.get('/auth/me');
-    return response.data.user;
+    try {
+      const response: AxiosResponse<ApiResponse<User>> = await this.api.get('/auth/me');
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   // Job endpoints
   async getJobs(filters?: JobFilters): Promise<Job[]> {
-    const params = new URLSearchParams();
-    if (filters?.status) params.append('status', filters.status);
-    if (filters?.search) params.append('search', filters.search);
-    if (filters?.company) params.append('company', filters.company);
-    if (filters?.location) params.append('location', filters.location);
+    try {
+      const params = new URLSearchParams();
+      if (filters?.status) params.append('status', filters.status);
+      if (filters?.search) params.append('search', filters.search);
+      if (filters?.company) params.append('company', filters.company);
+      if (filters?.location) params.append('location', filters.location);
+      if (filters?.page) params.append('page', filters.page.toString());
+      if (filters?.limit) params.append('limit', filters.limit.toString());
 
-    const response: AxiosResponse<ApiResponse<Job[]>> = await this.api.get(`/jobs?${params.toString()}`);
-    return response.data.data!;
+      const response: AxiosResponse<ApiResponse<Job[]>> = await this.api.get(`/jobs?${params.toString()}`);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async getJob(id: number): Promise<Job> {
-    const response: AxiosResponse<ApiResponse<Job>> = await this.api.get(`/jobs/${id}`);
-    return response.data.data!;
+    try {
+      const response: AxiosResponse<ApiResponse<Job>> = await this.api.get(`/jobs/${id}`);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async createJob(jobData: CreateJobRequest): Promise<Job> {
-    const response: AxiosResponse<ApiResponse<Job>> = await this.api.post('/jobs', jobData);
-    return response.data.data!;
+    try {
+      const response: AxiosResponse<ApiResponse<Job>> = await this.api.post('/jobs', jobData);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async updateJob(id: number, jobData: UpdateJobRequest): Promise<Job> {
-    const response: AxiosResponse<ApiResponse<Job>> = await this.api.put(`/jobs/${id}`, jobData);
-    return response.data.data!;
+    try {
+      const response: AxiosResponse<ApiResponse<Job>> = await this.api.put(`/jobs/${id}`, jobData);
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async deleteJob(id: number): Promise<void> {
-    await this.api.delete(`/jobs/${id}`);
+    try {
+      await this.api.delete(`/jobs/${id}`);
+    } catch (error) {
+      throw this.handleError(error);
+    }
   }
 
   async getDashboardStats(): Promise<DashboardStats> {
-    const response: AxiosResponse<ApiResponse<DashboardStats>> = await this.api.get('/jobs/stats');
-    return response.data.data!;
+    try {
+      const response: AxiosResponse<ApiResponse<DashboardStats>> = await this.api.get('/jobs/stats');
+      return this.handleResponse(response);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  // Utility method to check if API is reachable
+  async checkApiHealth(): Promise<boolean> {
+    try {
+      await this.api.get('/health');
+      return true;
+    } catch (error) {
+      return false;
+    }
   }
 }
 

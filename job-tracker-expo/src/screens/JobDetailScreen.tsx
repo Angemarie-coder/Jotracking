@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Linking } from 'react-native';
-import { Card, Title, Paragraph, Button, Text, ActivityIndicator, Chip, IconButton, Menu, Divider } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, Linking, Platform } from 'react-native';
+import { Card, Title, Paragraph, Text, ActivityIndicator, Chip, IconButton, Menu, Divider, useTheme } from 'react-native-paper';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { Job, JobStatus, UpdateJobRequest, RouteProps, NavigationProps } from '../types';
+import { Job, JobStatus, UpdateJobRequest, NavigationProps } from '../types';
 import apiService from '../services/api';
+import Button from '../components/Button';
+import { format } from 'date-fns';
 
 const JobDetailScreen = () => {
+  const theme = useTheme();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
   const route = useRoute();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProps>();
   const jobId = (route.params as any)?.jobId;
 
   useEffect(() => {
@@ -47,7 +50,9 @@ const JobDetailScreen = () => {
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
+    if (!job) return;
+
     Alert.alert(
       'Delete Job',
       'Are you sure you want to delete this job application?',
@@ -58,10 +63,8 @@ const JobDetailScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await apiService.deleteJob(job!.id);
-              Alert.alert('Success', 'Job deleted successfully', [
-                { text: 'OK', onPress: () => navigation.goBack() }
-              ]);
+              await apiService.deleteJob(job.id);
+              navigation.goBack();
             } catch (error: any) {
               Alert.alert('Error', error.response?.data?.message || 'Failed to delete job');
             }
@@ -71,197 +74,203 @@ const JobDetailScreen = () => {
     );
   };
 
-  const openJobUrl = () => {
-    if (job?.url) {
-      Linking.openURL(job.url);
-    }
+  const openURL = (url: string) => {
+    if (!url) return;
+    
+    // Add https:// if missing
+    const formattedUrl = url.startsWith('http') ? url : `https://${url}`;
+    
+    Linking.canOpenURL(formattedUrl).then(supported => {
+      if (supported) {
+        Linking.openURL(formattedUrl);
+      } else {
+        Alert.alert('Error', 'Could not open the URL');
+      }
+    });
   };
 
   const getStatusColor = (status: JobStatus) => {
     switch (status) {
-      case JobStatus.APPLIED: return '#2196F3';
-      case JobStatus.INTERVIEWING: return '#FF9800';
-      case JobStatus.OFFER: return '#4CAF50';
+      case JobStatus.APPLIED: return '#4CAF50';
+      case JobStatus.INTERVIEWING: return '#2196F3';
+      case JobStatus.OFFER: return '#9C27B0';
       case JobStatus.REJECTED: return '#F44336';
-      case JobStatus.SAVED: return '#9E9E9E';
       default: return '#9E9E9E';
     }
   };
 
-  const getStatusLabel = (status: JobStatus) => {
-    switch (status) {
-      case JobStatus.APPLIED: return 'Applied';
-      case JobStatus.INTERVIEWING: return 'Interviewing';
-      case JobStatus.OFFER: return 'Offer';
-      case JobStatus.REJECTED: return 'Rejected';
-      case JobStatus.SAVED: return 'Saved';
-      default: return status;
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Not specified';
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy');
+    } catch (error) {
+      return dateString;
     }
   };
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={styles.loader}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   if (!job) {
     return (
-      <View style={styles.errorContainer}>
+      <View style={styles.container}>
         <Text>Job not found</Text>
-        <Button onPress={() => navigation.goBack()}>Go Back</Button>
+        <Button 
+          onPress={() => navigation.goBack()} 
+          style={styles.button}
+          title="Go Back"
+        />
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header with Actions */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <Title style={styles.jobTitle}>{job.title}</Title>
-          <Paragraph style={styles.jobCompany}>{job.company}</Paragraph>
-          <Chip
-            mode="outlined"
-            textStyle={{ color: getStatusColor(job.status) }}
-            style={[styles.statusChip, { borderColor: getStatusColor(job.status) }]}
-          >
-            {getStatusLabel(job.status)}
-          </Chip>
-        </View>
-        
-        <Menu
-          visible={menuVisible}
-          onDismiss={() => setMenuVisible(false)}
-          anchor={
-            <IconButton
-              icon="dots-vertical"
-              onPress={() => setMenuVisible(true)}
-            />
-          }
-        >
-          <Menu.Item
-            onPress={() => {
-              setMenuVisible(false);
-              (navigation as any).navigate('EditJob', { jobId: job.id });
-            }}
-            title="Edit"
-            leadingIcon="pencil"
-          />
-          <Divider />
-          <Menu.Item
-            onPress={() => {
-              setMenuVisible(false);
-              handleDelete();
-            }}
-            title="Delete"
-            leadingIcon="delete"
-            titleStyle={{ color: '#F44336' }}
-          />
-        </Menu>
-      </View>
-
-      {/* Job Details */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>Job Details</Title>
-          
-          {job.location && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Location:</Text>
-              <Text style={styles.detailValue}>{job.location}</Text>
-            </View>
-          )}
-          
-          {job.salary && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Salary:</Text>
-              <Text style={styles.detailValue}>{job.salary}</Text>
-            </View>
-          )}
-          
-          {job.appliedDate && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Applied Date:</Text>
-              <Text style={styles.detailValue}>
-                {new Date(job.appliedDate).toLocaleDateString()}
-              </Text>
-            </View>
-          )}
-          
-          {job.url && (
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Job URL:</Text>
-              <Button mode="text" onPress={openJobUrl} compact>
-                Open Link
-              </Button>
-            </View>
-          )}
-        </Card.Content>
-      </Card>
-
-      {/* Description */}
-      {job.description && (
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <Card style={styles.card}>
           <Card.Content>
-            <Title>Job Description</Title>
-            <Paragraph>{job.description}</Paragraph>
+            <View style={styles.header}>
+              <View style={styles.titleContainer}>
+                <Title style={styles.title}>{job.title}</Title>
+                <Chip 
+                  style={[
+                    styles.statusChip, 
+                    { 
+                      backgroundColor: `${getStatusColor(job.status)}20`,
+                      borderColor: getStatusColor(job.status),
+                    }
+                  ]}
+                  textStyle={{ color: getStatusColor(job.status) }}
+                >
+                  {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                </Chip>
+              </View>
+              
+              <Menu
+                visible={menuVisible}
+                onDismiss={() => setMenuVisible(false)}
+                anchor={
+                  <IconButton
+                    icon="dots-vertical"
+                    onPress={() => setMenuVisible(true)}
+                    style={styles.menuButton}
+                  />
+                }
+              >
+                <Menu.Item 
+                  onPress={() => {
+                    setMenuVisible(false);
+                    navigation.navigate('EditJob', { jobId: job.id });
+                  }} 
+                  title="Edit" 
+                  leadingIcon="pencil"
+                />
+                <Divider />
+                <Menu.Item 
+                  onPress={() => {
+                    setMenuVisible(false);
+                    handleDelete();
+                  }} 
+                  title="Delete" 
+                  leadingIcon="delete"
+                  titleStyle={{ color: theme.colors.error }}
+                />
+              </Menu>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Company</Text>
+              <Text style={styles.companyName}>{job.company}</Text>
+              
+              {(job.location || job.url) && (
+                <View style={styles.metaContainer}>
+                  {job.location && (
+                    <View style={styles.metaItem}>
+                      <IconButton
+                        icon="map-marker"
+                        size={16}
+                        iconColor={theme.colors.onSurfaceVariant}
+                        style={styles.metaIcon}
+                      />
+                      <Text style={styles.metaText}>{job.location}</Text>
+                    </View>
+                  )}
+                  
+                  {job.url && (
+                    <Button 
+                      mode="text" 
+                      onPress={() => openURL(job.url as string)}
+                      style={styles.urlButton}
+                      textColor={theme.colors.primary}
+                      title="View Job Posting"
+                    />
+                  )}
+                </View>
+              )}
+            </View>
+
+            <View style={styles.detailsGrid}>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>Applied Date</Text>
+                <Text style={styles.detailValue}>
+                  {job.appliedDate ? formatDate(job.appliedDate) : 'Not specified'}
+                </Text>
+              </View>
+              
+              {job.salary && (
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>Salary</Text>
+                  <Text style={styles.detailValue}>{job.salary}</Text>
+                </View>
+              )}
+            </View>
+
+            {job.description && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Job Description</Text>
+                <Text style={styles.description}>{job.description}</Text>
+              </View>
+            )}
+
+            {job.notes && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Notes</Text>
+                <Text style={styles.notes}>{job.notes}</Text>
+              </View>
+            )}
           </Card.Content>
         </Card>
-      )}
 
-      {/* Notes */}
-      {job.notes && (
-        <Card style={styles.card}>
-          <Card.Content>
-            <Title>Notes</Title>
-            <Paragraph>{job.notes}</Paragraph>
-          </Card.Content>
-        </Card>
-      )}
-
-      {/* Status Update */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>Update Status</Title>
+        <View style={styles.statusContainer}>
+          <Text style={styles.statusTitle}>Update Status</Text>
           <View style={styles.statusButtons}>
-            {Object.values(JobStatus).map((status) => (
+            {['saved', 'applied', 'interviewing', 'offer', 'rejected'].map((status) => (
               <Button
                 key={status}
                 mode={job.status === status ? 'contained' : 'outlined'}
-                onPress={() => handleStatusUpdate(status)}
-                style={styles.statusButton}
-                loading={updating}
-                disabled={updating || job.status === status}
-              >
-                {getStatusLabel(status)}
-              </Button>
+                onPress={() => handleStatusUpdate(status as JobStatus)}
+                loading={updating && job.status === status}
+                disabled={updating}
+                style={[
+                  styles.statusButton,
+                  job.status === status && { 
+                    backgroundColor: getStatusColor(status as JobStatus),
+                    borderColor: getStatusColor(status as JobStatus),
+                  },
+                ]}
+                textColor={job.status === status ? 'white' : undefined}
+                title={status.charAt(0).toUpperCase() + status.slice(1)}
+              />
             ))}
           </View>
-        </Card.Content>
-      </Card>
-
-      {/* Timestamps */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>Timestamps</Title>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Created:</Text>
-            <Text style={styles.detailValue}>
-              {new Date(job.createdAt).toLocaleString()}
-            </Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Updated:</Text>
-            <Text style={styles.detailValue}>
-              {new Date(job.updatedAt).toLocaleString()}
-            </Text>
-          </View>
-        </Card.Content>
-      </Card>
-    </ScrollView>
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -270,71 +279,138 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  loadingContainer: {
+  loader: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 24,
+  },
+  card: {
+    borderRadius: 12,
+    marginBottom: 16,
+    elevation: 2,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: 16,
-    backgroundColor: '#fff',
+    marginBottom: 16,
   },
-  headerContent: {
+  titleContainer: {
     flex: 1,
+    marginRight: 8,
   },
-  jobTitle: {
+  title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  jobCompany: {
-    fontSize: 18,
-    color: '#666',
     marginBottom: 8,
+  },
+  menuButton: {
+    margin: -8,
   },
   statusChip: {
     alignSelf: 'flex-start',
+    marginTop: 4,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  card: {
-    margin: 16,
-    marginTop: 0,
+  section: {
+    marginBottom: 20,
   },
-  detailRow: {
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: 'rgba(0, 0, 0, 0.6)',
+    marginBottom: 8,
+  },
+  companyName: {
+    fontSize: 18,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  metaContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+    marginBottom: 8,
+  },
+  metaIcon: {
+    margin: 0,
+    marginRight: 4,
+    width: 20,
+    height: 20,
+  },
+  metaText: {
+    fontSize: 14,
+    color: 'rgba(0, 0, 0, 0.7)',
+  },
+  urlButton: {
+    marginLeft: -8,
+    height: 36,
+  },
+  detailsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 16,
+  },
+  detailItem: {
+    width: '50%',
+    marginBottom: 12,
   },
   detailLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 13,
+    color: 'rgba(0, 0, 0, 0.6)',
+    marginBottom: 2,
   },
   detailValue: {
+    fontSize: 15,
+    color: 'rgba(0, 0, 0, 0.9)',
+    fontWeight: '500',
+  },
+  description: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: 'rgba(0, 0, 0, 0.87)',
+  },
+  notes: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: 'rgba(0, 0, 0, 0.7)',
+    fontStyle: 'italic',
+  },
+  statusContainer: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    elevation: 2,
+  },
+  statusTitle: {
     fontSize: 16,
-    color: '#666',
-    flex: 1,
-    textAlign: 'right',
+    fontWeight: '500',
+    marginBottom: 12,
+    color: 'rgba(0, 0, 0, 0.87)',
   },
   statusButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 8,
+    margin: -4,
   },
   statusButton: {
-    marginBottom: 8,
+    margin: 4,
+    flex: 1,
+    minWidth: 100,
+  },
+  button: {
+    marginTop: 16,
   },
 });
 
-export default JobDetailScreen; 
+export default JobDetailScreen;

@@ -32,10 +32,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (credentials: LoginRequest) => {
     try {
+      console.log('Login attempt with:', credentials.email);
       const response = await apiService.login(credentials);
-      await AsyncStorage.setItem('authToken', response.token);
-      await AsyncStorage.setItem('user', JSON.stringify(response.user));
-      setUser(response.user);
+      console.log('Login response:', response);
+      
+      // Handle flat response structure from backend
+      let user, token;
+      
+      if (response.user && response.token) {
+        // Expected structure: { user: {...}, token: "..." }
+        user = response.user;
+        token = response.token;
+      } else if (response.token && response.id) {
+        // Flat structure: { id, firstName, lastName, email, token, ... }
+        user = {
+          id: response.id,
+          firstName: response.firstName,
+          lastName: response.lastName,
+          email: response.email,
+          isVerified: response.isVerified,
+          isAdmin: response.isAdmin,
+          createdAt: response.createdAt,
+          updatedAt: response.updatedAt
+        };
+        token = response.token;
+      } else {
+        throw new Error('Invalid login response: missing user or token');
+      }
+      
+      await AsyncStorage.setItem('authToken', token);
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+      setUser(user);
+      console.log('Login successful, user set:', user);
     } catch (error: any) {
       console.error('Login error:', error);
       

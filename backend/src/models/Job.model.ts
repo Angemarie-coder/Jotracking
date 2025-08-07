@@ -24,9 +24,7 @@ export enum JobStatus {
 
 @Table({
   tableName: 'jobs',
-  timestamps: true,
-  underscored: false,  // Use camelCase for column names
-  freezeTableName: true  // Prevent Sequelize from pluralizing the table name
+  timestamps: true
 })
 export default class Job extends Model {
   @PrimaryKey
@@ -35,10 +33,7 @@ export default class Job extends Model {
   id!: number;
 
   @AllowNull(false)
-  @Column({
-    type: DataType.STRING,
-    field: 'jobTitle'  // Explicitly set the column name to match the database
-  })
+  @Column(DataType.STRING)
   title!: string;
 
   @Column(DataType.STRING)
@@ -47,10 +42,7 @@ export default class Job extends Model {
   @Column(DataType.TEXT)
   description?: string;
 
-  @Column({
-    type: DataType.STRING,
-    field: 'jobLocation'  // Explicitly set the column name to match the database
-  })
+  @Column(DataType.STRING)
   location?: string;
 
   @Column(DataType.STRING)
@@ -61,14 +53,12 @@ export default class Job extends Model {
 
   @Column({
     type: DataType.ENUM(...Object.values(JobStatus)),
-    field: 'status',
     defaultValue: JobStatus.SAVED
   })
   status!: JobStatus;
 
   @Column({
     type: DataType.DATE,
-    field: 'appliedDate',
     allowNull: true
   })
   appliedDate?: Date;
@@ -77,24 +67,9 @@ export default class Job extends Model {
   notes?: string;
 
   @ForeignKey(() => User)
-  @Column({
-    type: DataType.INTEGER,
-    field: 'userId'
-  })
+  @Column(DataType.INTEGER)
   userId!: number;
 
   @BelongsTo(() => User)
   user!: User;
-
-  @Column({
-    type: DataType.DATE,
-    field: 'createdAt'
-  })
-  createdAt!: Date;
-
-  @Column({
-    type: DataType.DATE,
-    field: 'updatedAt'
-  })
-  updatedAt!: Date;
 }

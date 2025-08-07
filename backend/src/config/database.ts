@@ -34,15 +34,7 @@ const databaseConfig: { [key: string]: DatabaseConfig } = {
     dialect: 'postgres' as const,
     logging: console.log,
   },
-  test: {
-    username: process.env.PG_USER,
-    password: process.env.PG_PASSWORD,
-    database: process.env.PG_TEST_DATABASE || 'test_db',
-    host: process.env.PG_HOST || 'localhost',
-    port: Number(process.env.PG_PORT) || 5432,
-    dialect: 'postgres' as const,
-    logging: false,
-  },
+
   production: {
     username: process.env.PG_USER,
     password: process.env.PG_PASSWORD,

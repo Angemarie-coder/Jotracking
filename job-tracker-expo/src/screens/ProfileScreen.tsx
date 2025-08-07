@@ -1,9 +1,14 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Card, Title, Paragraph, Button, Text, Avatar, List, Divider } from 'react-native-paper';
+import { Card, Title, Text, Avatar, List, Divider, useTheme } from 'react-native-paper';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import Button from '../components/Button';
+import { NavigationProps } from '../types';
+import { spacing, typography, colors, borderRadius, shadows } from '../theme';
 
-const ProfileScreen = () => {
+const ProfileScreen = ({ navigation }: { navigation: NavigationProps }) => {
+  const theme = useTheme();
   const { user, logout } = useAuth();
 
   const handleLogout = () => {
@@ -35,142 +40,162 @@ const ProfileScreen = () => {
     return (
       <View style={styles.errorContainer}>
         <Text>User not found</Text>
+        <Button 
+          onPress={() => navigation.navigate('Login')} 
+          style={styles.button}
+          title="Go to Login"
+        />
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Profile Header */}
-      <Card style={styles.profileCard}>
+      <Card style={[styles.profileCard, { backgroundColor: theme.colors.surface }]}>
         <Card.Content style={styles.profileContent}>
-          <Avatar.Text
-            size={80}
-            label={generateInitials(user.firstName, user.lastName)}
-            style={styles.avatar}
-          />
-          <View style={styles.profileInfo}>
-            <Title style={styles.userName}>
-              {user.firstName} {user.lastName}
-            </Title>
-            <Paragraph style={styles.userEmail}>{user.email}</Paragraph>
-            <View style={styles.statusContainer}>
-              <Text style={styles.statusLabel}>Account Status:</Text>
-              <Text style={[styles.statusText, { color: user.isVerified ? '#4CAF50' : '#FF9800' }]}>
-                {user.isVerified ? 'Verified' : 'Pending Verification'}
-              </Text>
+          <View style={styles.avatarContainer}>
+            <Avatar.Text
+              size={96}
+              label={generateInitials(user.firstName, user.lastName)}
+              style={[styles.avatar, { backgroundColor: theme.colors.primary }]}
+              labelStyle={styles.avatarText}
+            />
+          </View>
+          
+          <Title style={[styles.userName, { color: theme.colors.onSurface }]}>
+            {user.firstName} {user.lastName}
+          </Title>
+          
+          <Text style={[styles.userEmail, { color: theme.colors.onSurfaceVariant }]}>
+            {user.email}
+          </Text>
+          
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: theme.colors.primary }]}>0</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>Applied</Text>
             </View>
-            {user.isAdmin && (
-              <Text style={styles.adminBadge}>Administrator</Text>
-            )}
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: theme.colors.primary }]}>0</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>Interviews</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={[styles.statValue, { color: theme.colors.primary }]}>0</Text>
+              <Text style={[styles.statLabel, { color: theme.colors.onSurfaceVariant }]}>Offers</Text>
+            </View>
           </View>
         </Card.Content>
       </Card>
 
-      {/* Account Information */}
-      <Card style={styles.card}>
+      {/* Account Section */}
+      <Card style={[styles.sectionCard, { backgroundColor: theme.colors.surface }]}>
         <Card.Content>
-          <Title>Account Information</Title>
+          <Title style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+            Account
+          </Title>
+          
           <List.Item
-            title="Full Name"
-            description={`${user.firstName} ${user.lastName}`}
-            left={(props) => <List.Icon {...props} icon="account" />}
+            title="Edit Profile"
+            description="Update your personal information"
+            left={props => <List.Icon {...props} icon="account-edit" color={theme.colors.primary} />}
+            onPress={() => navigation.navigate('EditProfile')}
+            style={styles.listItem}
+            titleStyle={{ color: theme.colors.onSurface }}
+            descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
           />
-          <Divider />
-          <List.Item
-            title="Email Address"
-            description={user.email}
-            left={(props) => <List.Icon {...props} icon="email" />}
-          />
-          <Divider />
-          <List.Item
-            title="Member Since"
-            description={new Date(user.createdAt).toLocaleDateString()}
-            left={(props) => <List.Icon {...props} icon="calendar" />}
-          />
-          <Divider />
-          <List.Item
-            title="Last Updated"
-            description={new Date(user.updatedAt).toLocaleDateString()}
-            left={(props) => <List.Icon {...props} icon="update" />}
-          />
-        </Card.Content>
-      </Card>
-
-      {/* Settings */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>Settings</Title>
+          <Divider style={[styles.divider, { backgroundColor: theme.colors.outline }]} />
+          
           <List.Item
             title="Change Password"
-            description="Update your account password"
-            left={(props) => <List.Icon {...props} icon="lock" />}
-            right={(props) => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => Alert.alert('Coming Soon', 'Password change feature will be available soon')}
-          />
-          <Divider />
-          <List.Item
-            title="Notification Settings"
-            description="Manage your notification preferences"
-            left={(props) => <List.Icon {...props} icon="bell" />}
-            right={(props) => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => Alert.alert('Coming Soon', 'Notification settings will be available soon')}
-          />
-          <Divider />
-          <List.Item
-            title="Privacy Settings"
-            description="Manage your privacy and data settings"
-            left={(props) => <List.Icon {...props} icon="shield" />}
-            right={(props) => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => Alert.alert('Coming Soon', 'Privacy settings will be available soon')}
+            description="Update your password"
+            left={props => <List.Icon {...props} icon="lock-reset" color={theme.colors.primary} />}
+            onPress={() => navigation.navigate('ChangePassword')}
+            style={styles.listItem}
+            titleStyle={{ color: theme.colors.onSurface }}
+            descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
           />
         </Card.Content>
       </Card>
 
-      {/* Support */}
-      <Card style={styles.card}>
+      {/* App Section */}
+      <Card style={[styles.sectionCard, { backgroundColor: theme.colors.surface }]}>
         <Card.Content>
-          <Title>Support</Title>
+          <Title style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+            App Settings
+          </Title>
+          
           <List.Item
-            title="Help & FAQ"
-            description="Get help and find answers to common questions"
-            left={(props) => <List.Icon {...props} icon="help-circle" />}
-            right={(props) => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => Alert.alert('Coming Soon', 'Help section will be available soon')}
+            title="Notifications"
+            description="Manage your notification preferences"
+            left={props => <List.Icon {...props} icon="bell" color={theme.colors.primary} />}
+            onPress={() => navigation.navigate('NotificationSettings')}
+            style={styles.listItem}
+            titleStyle={{ color: theme.colors.onSurface }}
+            descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
           />
-          <Divider />
+          <Divider style={[styles.divider, { backgroundColor: theme.colors.outline }]} />
+          
           <List.Item
-            title="Contact Support"
-            description="Get in touch with our support team"
-            left={(props) => <List.Icon {...props} icon="message" />}
-            right={(props) => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => Alert.alert('Coming Soon', 'Contact support will be available soon')}
+            title="Theme"
+            description="Change app theme"
+            left={props => <List.Icon {...props} icon="theme-light-dark" color={theme.colors.primary} />}
+            onPress={() => navigation.navigate('ThemeSettings')}
+            style={styles.listItem}
+            titleStyle={{ color: theme.colors.onSurface }}
+            descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
           />
-          <Divider />
+        </Card.Content>
+      </Card>
+
+      {/* Support Section */}
+      <Card style={[styles.sectionCard, { backgroundColor: theme.colors.surface }]}>
+        <Card.Content>
+          <Title style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
+            Support
+          </Title>
+          
+          <List.Item
+            title="Help & Support"
+            description="Get help with the app"
+            left={props => <List.Icon {...props} icon="help-circle" color={theme.colors.primary} />}
+            onPress={() => navigation.navigate('HelpSupport')}
+            style={styles.listItem}
+            titleStyle={{ color: theme.colors.onSurface }}
+            descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
+          />
+          <Divider style={[styles.divider, { backgroundColor: theme.colors.outline }]} />
+          
           <List.Item
             title="About"
-            description="Learn more about Job Tracker"
-            left={(props) => <List.Icon {...props} icon="information" />}
-            right={(props) => <List.Icon {...props} icon="chevron-right" />}
-            onPress={() => Alert.alert('About', 'Job Tracker v1.0.0\nA React Native app for tracking job applications')}
+            description="App version and information"
+            left={props => <List.Icon {...props} icon="information" color={theme.colors.primary} />}
+            onPress={() => navigation.navigate('About')}
+            style={styles.listItem}
+            titleStyle={{ color: theme.colors.onSurface }}
+            descriptionStyle={{ color: theme.colors.onSurfaceVariant }}
           />
         </Card.Content>
       </Card>
 
       {/* Logout Button */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Button
-            mode="outlined"
-            onPress={handleLogout}
-            icon="logout"
-            style={styles.logoutButton}
-            textColor="#F44336"
-          >
-            Logout
-          </Button>
-        </Card.Content>
-      </Card>
+      <View style={styles.logoutContainer}>
+        <Button
+          mode="outlined"
+          onPress={handleLogout}
+          style={[styles.logoutButton, { borderColor: theme.colors.error }]}
+          textColor={theme.colors.error}
+          title="Logout"
+        />
+      </View>
+
+      <View style={styles.versionContainer}>
+        <Text style={[styles.versionText, { color: theme.colors.onSurfaceVariant }]}>
+          v1.0.0
+        </Text>
+      </View>
     </ScrollView>
   );
 };
@@ -178,68 +203,107 @@ const ProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
+  },
+  button: {
+    marginTop: 16,
   },
   profileCard: {
     margin: 16,
-    marginBottom: 8,
+    borderRadius: borderRadius.card,
+    ...shadows.md,
   },
   profileContent: {
     alignItems: 'center',
-    paddingVertical: 24,
+    padding: 24,
+  },
+  avatarContainer: {
+    marginBottom: 16,
   },
   avatar: {
-    marginBottom: 16,
-    backgroundColor: '#007AFF',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
   },
-  profileInfo: {
-    alignItems: 'center',
+  avatarText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: 'white',
   },
   userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    ...typography.h3,
+    textAlign: 'center',
     marginBottom: 4,
   },
   userEmail: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 8,
+    ...typography.body1,
+    textAlign: 'center',
+    marginBottom: 16,
   },
-  statusContainer: {
+  statsContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  statItem: {
     alignItems: 'center',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  statLabel: {
+    ...typography.caption,
+    textAlign: 'center',
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    marginVertical: 8,
+  },
+  sectionCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: borderRadius.md,
+    ...shadows.sm,
+  },
+  sectionTitle: {
+    ...typography.h5,
+    fontWeight: '600',
     marginBottom: 8,
   },
-  statusLabel: {
-    fontSize: 14,
-    color: '#666',
-    marginRight: 4,
+  listItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 4,
   },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '600',
+  divider: {
+    marginLeft: 56,
   },
-  adminBadge: {
-    backgroundColor: '#FF9800',
-    color: '#fff',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  card: {
+  logoutContainer: {
     margin: 16,
     marginTop: 8,
   },
   logoutButton: {
-    borderColor: '#F44336',
+    borderWidth: 1,
+  },
+  versionContainer: {
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  versionText: {
+    ...typography.caption,
   },
 });
 
-export default ProfileScreen; 
+export default ProfileScreen;

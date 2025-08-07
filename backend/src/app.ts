@@ -6,6 +6,7 @@ import cors from 'cors';
 import connectDB from './config/db';
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
+import jobRoutes from './routes/jobs';
 
 // Load .env file
 const envPath = path.resolve(__dirname, '../.env');
@@ -23,13 +24,13 @@ interface Env {
   NODE_ENV: string;
 }
 
-// Use default values if environment variables are missing
-const env: Env = {
-  PORT: process.env.PORT || '3000',
-  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
-  JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
-  NODE_ENV: process.env.NODE_ENV || 'development'
-};
+    // Use default values if environment variables are missing
+    const env: Env = {
+      PORT: process.env.PORT || '5000',
+      FRONTEND_URL: process.env.FRONTEND_URL || 'http://192.168.1.124:8081',
+      JWT_SECRET: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this-in-production',
+      NODE_ENV: process.env.NODE_ENV || 'development'
+    };
 
 console.log('Environment configuration:', {
   PORT: env.PORT,
@@ -43,14 +44,22 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// CORS configuration
-const corsOptions = {
-  origin: env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Content-Range', 'X-Total-Count']
-};
+// Serve static files
+app.use(express.static(path.join(__dirname, '../public')));
+
+    // CORS configuration
+    const corsOptions = {
+      origin: [
+        env.FRONTEND_URL || 'http://localhost:3000',
+        'http://192.168.1.124:8081', // Expo development server
+        'http://192.168.1.124:19006', // Expo web
+        'exp://192.168.1.124:8081' // Expo app
+      ],
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      exposedHeaders: ['Content-Range', 'X-Total-Count']
+    };
 
 app.use(cors(corsOptions));
 
@@ -63,10 +72,23 @@ if (env.NODE_ENV === 'development') {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/jobs', jobRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Email verification page
+app.get('/verify-email', (req, res) => {
+  console.log('Serving verification page');
+  res.sendFile(path.join(__dirname, '../public/verify-email.html'));
+});
+
+// Test endpoint for debugging
+app.get('/api/test-verification', (req, res) => {
+  console.log('Test verification endpoint called');
+  res.json({ success: true, message: 'Test endpoint working' });
 });
 
 // Error handling middleware

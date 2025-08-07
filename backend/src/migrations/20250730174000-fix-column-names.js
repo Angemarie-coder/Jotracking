@@ -5,26 +5,51 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
     
     try {
-      // Rename columns in users table
+      // Rename columns in users table - one at a time
       await queryInterface.sequelize.query(
-        `ALTER TABLE users 
-         RENAME COLUMN "firstName" TO "first_name",
-         RENAME COLUMN "lastName" TO "last_name",
-         RENAME COLUMN "isVerified" TO "is_verified",
-         RENAME COLUMN "verificationToken" TO "verification_token",
-         RENAME COLUMN "verificationTokenExpires" TO "verification_token_expires",
-         RENAME COLUMN "createdAt" TO "created_at",
-         RENAME COLUMN "updatedAt" TO "updated_at"`,
+        `ALTER TABLE users RENAME COLUMN "firstName" TO "first_name"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE users RENAME COLUMN "lastName" TO "last_name"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE users RENAME COLUMN "isVerified" TO "is_verified"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE users RENAME COLUMN "verificationToken" TO "verification_token"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE users RENAME COLUMN "verificationTokenExpires" TO "verification_token_expires"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE users RENAME COLUMN "createdAt" TO "created_at"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE users RENAME COLUMN "updatedAt" TO "updated_at"`,
         { transaction }
       );
 
-      // Rename columns in jobs table
+      // Rename columns in jobs table - one at a time
       await queryInterface.sequelize.query(
-        `ALTER TABLE jobs 
-         RENAME COLUMN "appliedDate" TO "applied_date",
-         RENAME COLUMN "userId" TO "user_id",
-         RENAME COLUMN "createdAt" TO "created_at",
-         RENAME COLUMN "updatedAt" TO "updated_at"`,
+        `ALTER TABLE jobs RENAME COLUMN "appliedDate" TO "applied_date"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE jobs RENAME COLUMN "userId" TO "user_id"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE jobs RENAME COLUMN "createdAt" TO "created_at"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE jobs RENAME COLUMN "updatedAt" TO "updated_at"`,
         { transaction }
       );
 
@@ -39,26 +64,51 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
     
     try {
-      // Revert changes in users table
+      // Revert changes in users table - one at a time
       await queryInterface.sequelize.query(
-        `ALTER TABLE users 
-         RENAME COLUMN "first_name" TO "firstName",
-         RENAME COLUMN "last_name" TO "lastName",
-         RENAME COLUMN "is_verified" TO "isVerified",
-         RENAME COLUMN "verification_token" TO "verificationToken",
-         RENAME COLUMN "verification_token_expires" TO "verificationTokenExpires",
-         RENAME COLUMN "created_at" TO "createdAt",
-         RENAME COLUMN "updated_at" TO "updatedAt"`,
+        `ALTER TABLE users RENAME COLUMN "first_name" TO "firstName"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE users RENAME COLUMN "last_name" TO "lastName"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE users RENAME COLUMN "is_verified" TO "isVerified"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE users RENAME COLUMN "verification_token" TO "verificationToken"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE users RENAME COLUMN "verification_token_expires" TO "verificationTokenExpires"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE users RENAME COLUMN "created_at" TO "createdAt"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE users RENAME COLUMN "updated_at" TO "updatedAt"`,
         { transaction }
       );
 
-      // Revert changes in jobs table
+      // Revert changes in jobs table - one at a time
       await queryInterface.sequelize.query(
-        `ALTER TABLE jobs 
-         RENAME COLUMN "applied_date" TO "appliedDate",
-         RENAME COLUMN "user_id" TO "userId",
-         RENAME COLUMN "created_at" TO "createdAt",
-         RENAME COLUMN "updated_at" TO "updatedAt"`,
+        `ALTER TABLE jobs RENAME COLUMN "applied_date" TO "appliedDate"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE jobs RENAME COLUMN "user_id" TO "userId"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE jobs RENAME COLUMN "created_at" TO "createdAt"`,
+        { transaction }
+      );
+      await queryInterface.sequelize.query(
+        `ALTER TABLE jobs RENAME COLUMN "updated_at" TO "updatedAt"`,
         { transaction }
       );
 
